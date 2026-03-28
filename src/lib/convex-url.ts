@@ -19,6 +19,14 @@ export function getConvexUrlForProvider(): string {
     return BUILD_TIME_PLACEHOLDER;
   }
 
+  // Use placeholder in development environments to allow landing page to render
+  if (process.env.NODE_ENV === "development") {
+    console.warn(
+      "Warning: NEXT_PUBLIC_CONVEX_URL not set. Using placeholder. The app will not work properly until you add your Convex URL to environment variables."
+    );
+    return BUILD_TIME_PLACEHOLDER;
+  }
+
   throw new Error(
     "Missing NEXT_PUBLIC_CONVEX_URL. Add it to .env.local (see .env.example) and to Vercel project env vars before deploy. https://docs.convex.dev/production/hosting/"
   );
