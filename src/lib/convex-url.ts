@@ -15,15 +15,13 @@ export function getConvexUrlForProvider(): string {
     return fromEnv;
   }
 
-  if (process.env.NEXT_PHASE === "phase-production-build") {
-    return BUILD_TIME_PLACEHOLDER;
-  }
-
-  // Use placeholder in development environments to allow landing page to render
-  if (process.env.NODE_ENV === "development") {
-    console.warn(
-      "Warning: NEXT_PUBLIC_CONVEX_URL not set. Using placeholder. The app will not work properly until you add your Convex URL to environment variables."
-    );
+  // Always use placeholder in development or build time to allow landing page to render
+  if (process.env.NEXT_PHASE === "phase-production-build" || process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Warning: NEXT_PUBLIC_CONVEX_URL not set. Using placeholder. The app will not work properly until you add your Convex URL to environment variables."
+      );
+    }
     return BUILD_TIME_PLACEHOLDER;
   }
 
