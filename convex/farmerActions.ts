@@ -3,6 +3,7 @@
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { groqChat } from "./groqClient";
 
 const API_TIMEOUT_MS = 25_000;
 
@@ -18,6 +19,11 @@ function formatPipelineError(error: unknown): string {
   ) {
     return (
       "نیٚٹَورٕ وَکھٕ — دُبارٕ کوشِش کٔرِو — Network timed out. Check internet and try again."
+    );
+  }
+  if (msg.includes("429") || msg.includes("rate_limit") || msg.includes("quota")) {
+    return (
+      "AI سروس عارٕ عارٕ — کٲم دٲرٕ بعد دٲدٲرٕ کوشِش کٔرِو — AI is busy. Please try again in a few minutes."
     );
   }
   return error.message;
@@ -216,9 +222,6 @@ async function structureResponse(
   searchResults: string,
   highwayContext?: string
 ): Promise<Record<string, unknown>> {
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is not configured");
-
   const systemPrompt = `You are an agricultural market analyst for farmers in Kashmir, India.
 Given a farmer's voice query (transcribed from Kashmiri, Hindi, or Urdu), web search results about mandi prices, and NH44 highway status, extract and return structured price information with logistics advice.
 
@@ -257,40 +260,12 @@ Rules:
 - CRITICAL: If NH44 highway is CLOSED, the advice MUST warn: "Prices are good but road is closed — don't harvest perishables yet"
 - If highway status is unknown, set status to "unknown" and give neutral advice`;
 
-  const response = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Farmer's query: "${transcript}"\n\nSearch results about mandi prices:\n${searchResults}\n\n--- NH44 Highway Status ---\n${highwayContext || "Not available"}`,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 1024,
-        response_format: { type: "json_object" },
-      }),
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    }
+  const content = await groqChat(
+    systemPrompt,
+    `Farmer's query: "${transcript}"\n\nSearch results about mandi prices:\n${searchResults}\n\n--- NH44 Highway Status ---\n${highwayContext || "Not available"}`,
+    true,
+    { maxTokens: 1024 }
   );
-
-  if (!response.ok) {
-    const errBody = await response.text();
-    throw new Error(`Groq LLM failed (${response.status}): ${errBody}`);
-  }
-
-  const data: {
-    choices?: Array<{ message?: { content?: string } }>;
-  } = await response.json();
-  const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
     throw new Error("Empty response from Groq LLM");

@@ -112,6 +112,8 @@ export type UiStrings = {
   confidenceLow: string;
   unitPerQuintal: string;
   nh44StatusPrefix: string;
+  settingsTitle: string;
+  settingsAriaLabel: string;
 };
 
 export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
@@ -188,6 +190,8 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     confidenceLow: "کَم بھروسٕ",
     unitPerQuintal: "پٲنٛژٕ کٲنٛش",
     nh44StatusPrefix: "NH44:",
+    settingsTitle: "ترتیٖبات",
+    settingsAriaLabel: "ترتیٖبات کھولِو",
   },
   hindi: {
     welcomeTitle: "KisanVoice में आपका स्वागत है",
@@ -261,6 +265,8 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     confidenceLow: "कम भरोसा",
     unitPerQuintal: "प्रति क्विंटल",
     nh44StatusPrefix: "NH44:",
+    settingsTitle: "सेटिंग्स",
+    settingsAriaLabel: "सेटिंग्स खोलें",
   },
   english: {
     welcomeTitle: "Welcome to KisanVoice",
@@ -338,6 +344,8 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     confidenceLow: "Low confidence",
     unitPerQuintal: "per quintal",
     nh44StatusPrefix: "NH44:",
+    settingsTitle: "Settings",
+    settingsAriaLabel: "Open settings",
   },
 };
 

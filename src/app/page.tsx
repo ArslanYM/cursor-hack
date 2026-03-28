@@ -34,6 +34,7 @@ import {
   Globe,
   Sparkles,
   BookOpen,
+  Settings,
 } from "lucide-react";
 import {
   UI_STRINGS,
@@ -44,6 +45,7 @@ import {
   type UiStrings,
 } from "./kisan-i18n";
 import { LanguageSelectScreen, FeatureGuideScreen } from "./kisan-onboarding";
+import { LanguageSettingsSheet } from "./kisan-language-settings";
 
 /* ────────────────────────────────────────────
    Helpers
@@ -251,6 +253,7 @@ export default function KisanVoice() {
   const storeUser = useMutation(api.users.store);
   const currentUser = useQuery(api.users.current);
   const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const updatePreferences = useMutation(api.users.updatePreferences);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -297,6 +300,19 @@ export default function KisanVoice() {
     }
   }, [completeOnboarding, selectedLanguage]);
 
+  const handleLanguageChangeFromSettings = useCallback(
+    async (lang: AppLanguage) => {
+      setSelectedLanguage(lang);
+      setSettingsOpen(false);
+      try {
+        await updatePreferences({ language: lang });
+      } catch {
+        /* offline / auth — UI still updates */
+      }
+    },
+    [updatePreferences]
+  );
+
   const t = UI_STRINGS[selectedLanguage];
 
   const [activeQueryId, setActiveQueryId] = useState<Id<"queries"> | null>(
@@ -310,6 +326,7 @@ export default function KisanVoice() {
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const [showBriefingDetail, setShowBriefingDetail] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "intel">("chat");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const intelAutoFetchDoneRef = useRef(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -668,7 +685,16 @@ export default function KisanVoice() {
               KisanVoice
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="w-10 h-10 rounded-full bg-[#141b14] border border-[#434a41]/30 flex items-center justify-center cursor-pointer hover:bg-[#192219] transition-colors active:scale-95"
+              aria-label={t.settingsAriaLabel}
+              aria-expanded={settingsOpen}
+            >
+              <Settings className="w-5 h-5 text-[#a6ada3]" strokeWidth={2} />
+            </button>
             <button
               onClick={fetchBriefing}
               disabled={isBriefingLoading}
@@ -856,6 +882,14 @@ export default function KisanVoice() {
           )}
         </div>
       </div>
+
+      <LanguageSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        selectedLanguage={selectedLanguage}
+        onSelectLanguage={handleLanguageChangeFromSettings}
+        t={t}
+      />
     </main>
   );
 }
