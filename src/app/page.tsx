@@ -1166,19 +1166,6 @@ function FeatureGuideScreen({
         {t.getStarted}
       </button>
 
-      {/* Keyframe animation styles */}
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </main>
   );
 }
