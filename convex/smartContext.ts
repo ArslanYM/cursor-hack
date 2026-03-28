@@ -1,11 +1,165 @@
 "use node";
 
-import { action, internalAction } from "./_generated/server";
+import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { groqChat } from "./groqClient";
 
 const API_TIMEOUT_MS = 20_000;
+/** Stay under Convex document / value limits */
+const MAX_SMART_CONTEXT_CHARS = 750_000;
+
+function sanitizeStr(v: unknown, fallback = ""): string {
+  if (typeof v === "string") return v;
+  if (v === null || v === undefined) return fallback;
+  return String(v);
+}
+
+type BriefingAlert = {
+  category: string;
+  severity: string;
+  title: string;
+  body: string;
+  titleKashmiri?: string;
+  bodyKashmiri?: string;
+  bodyHindi?: string;
+};
+
+function sanitizeAlertsForStorage(raw: unknown): BriefingAlert[] {
+  if (!Array.isArray(raw)) return [];
+  const out: BriefingAlert[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const row: BriefingAlert = {
+      category: sanitizeStr(o.category, "weather"),
+      severity: sanitizeStr(o.severity, "info"),
+      title: sanitizeStr(o.title, "Alert"),
+      body: sanitizeStr(o.body, ""),
+    };
+    if (o.titleKashmiri !== undefined)
+      row.titleKashmiri = sanitizeStr(o.titleKashmiri);
+    if (o.bodyKashmiri !== undefined)
+      row.bodyKashmiri = sanitizeStr(o.bodyKashmiri);
+    if (o.bodyHindi !== undefined) row.bodyHindi = sanitizeStr(o.bodyHindi);
+    out.push(row);
+  }
+  return out;
+}
+
+function sanitizeHighway(
+  h: unknown
+): { status: string; detail: string; advice: string } | undefined {
+  if (!h || typeof h !== "object") return undefined;
+  const o = h as Record<string, unknown>;
+  return {
+    status: sanitizeStr(o.status, "unknown"),
+    detail: sanitizeStr(o.detail, ""),
+    advice: sanitizeStr(o.advice, ""),
+  };
+}
+
+function sanitizeSubsidies(
+  raw: unknown
+):
+  | Array<{ name: string; deadline?: string; detail: string }>
+  | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: Array<{ name: string; deadline?: string; detail: string }> = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    out.push({
+      name: sanitizeStr(o.name, "Scheme"),
+      deadline:
+        o.deadline !== undefined ? sanitizeStr(o.deadline) : undefined,
+      detail: sanitizeStr(o.detail, ""),
+    });
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+/** Convex action returns must be JSON-serializable (no undefined). */
+function toConvexSafeReturn(
+  briefing: Record<string, unknown>
+): Record<string, unknown> {
+  try {
+    return JSON.parse(
+      JSON.stringify(briefing, (_k, val) =>
+        val === undefined ? null : val
+      )
+    ) as Record<string, unknown>;
+  } catch (e) {
+    console.error("[KV:Smart] Return value not serializable", e);
+    return {
+      morningBriefing: sanitizeStr(briefing.morningBriefing, "Briefing unavailable."),
+      morningBriefingKashmiri: "",
+      morningBriefingHindi: "",
+      voiceScript: "",
+      alerts: [],
+      highway: { status: "unknown", detail: "", advice: "" },
+      subsidies: [],
+      pestWarnings: [],
+      marketVibe: "",
+    };
+  }
+}
+
+function truncateBriefingForStorage(
+  briefing: Record<string, unknown>
+): Record<string, unknown> {
+  const b = { ...briefing };
+  const keys = [
+    "morningBriefing",
+    "morningBriefingKashmiri",
+    "morningBriefingHindi",
+    "voiceScript",
+  ] as const;
+  for (const k of keys) {
+    const v = b[k];
+    if (typeof v === "string" && v.length > 25_000) {
+      b[k] = `${v.slice(0, 25_000)}…`;
+    }
+  }
+  return b;
+}
+
+function jsonForStorage(obj: Record<string, unknown>): string {
+  try {
+    let s = JSON.stringify(obj, (_k, v) => (v === undefined ? null : v));
+    if (s.length <= MAX_SMART_CONTEXT_CHARS) return s;
+    const slim: Record<string, unknown> = {
+      ...truncateBriefingForStorage(obj),
+      alerts: Array.isArray(obj.alerts) ? [] : obj.alerts,
+      pestWarnings: [],
+      subsidies: [],
+    };
+    s = JSON.stringify(slim, (_k, v) => (v === undefined ? null : v));
+    if (s.length <= MAX_SMART_CONTEXT_CHARS) return s;
+    return JSON.stringify(
+      {
+        morningBriefing: String(obj.morningBriefing ?? "").slice(0, 4000),
+        morningBriefingKashmiri: "",
+        morningBriefingHindi: "",
+        voiceScript: String(obj.voiceScript ?? "").slice(0, 1500),
+        alerts: [],
+        highway: sanitizeHighway(obj.highway),
+        subsidies: [],
+        pestWarnings: [],
+        marketVibe: String(obj.marketVibe ?? "").slice(0, 500),
+        _truncated: true,
+      },
+      (_k, v) => (v === undefined ? null : v)
+    );
+  } catch (e) {
+    console.error("[KV:Smart] jsonForStorage failed", e);
+    return JSON.stringify({
+      morningBriefing: "Briefing could not be stored.",
+      voiceScript: "",
+      alerts: [],
+    });
+  }
+}
 
 interface ExaResult {
   title?: string;
@@ -19,7 +173,10 @@ async function exaSearch(
   maxChars = 1500
 ): Promise<ExaResult[]> {
   const EXA_API_KEY = process.env.EXA_API_KEY;
-  if (!EXA_API_KEY) throw new Error("EXA_API_KEY not configured");
+  if (!EXA_API_KEY) {
+    console.warn("[KV:Smart] EXA_API_KEY missing — search skipped");
+    return [];
+  }
 
   const res = await fetch("https://api.exa.ai/search", {
     method: "POST",
@@ -323,40 +480,34 @@ export const getSmartContext = action({
     );
 
     console.log("[KV:Smart] Synthesizing briefing via LLM...");
-    const briefing = await synthesizeBriefing(location, crops, streams);
+    const briefingRaw = await synthesizeBriefing(location, crops, streams);
+    const briefing = briefingRaw as Record<string, unknown>;
     console.log("[KV:Smart] Briefing complete!");
 
-    const alerts = Array.isArray(briefing.alerts)
-      ? (briefing.alerts as Array<{
-          category: string;
-          severity: string;
-          title: string;
-          body: string;
-        }>)
-      : [];
+    const alerts = sanitizeAlertsForStorage(briefing.alerts);
+    const highway = sanitizeHighway(briefing.highway);
+    const subsidies = sanitizeSubsidies(briefing.subsidies);
+    const voiceScript = sanitizeStr(briefing.voiceScript, "");
 
-    const highway = briefing.highway as
-      | { status: string; detail: string; advice: string }
-      | undefined;
+    const smartContextStored = jsonForStorage(briefing);
 
-    const subsidies = Array.isArray(briefing.subsidies)
-      ? (briefing.subsidies as Array<{
-          name: string;
-          deadline?: string;
-          detail: string;
-        }>)
-      : [];
-
-    await ctx.runMutation(internal.smartContextMutations.saveBriefing, {
-      tokenIdentifier: identity.tokenIdentifier,
-      location,
-      crops,
-      smartContext: JSON.stringify(briefing),
-      voiceScript: (briefing.voiceScript as string) || "",
-      alerts,
-      highway: highway || undefined,
-      subsidies: subsidies.length > 0 ? subsidies : undefined,
-    });
+    try {
+      await ctx.runMutation(internal.smartContextMutations.saveBriefing, {
+        tokenIdentifier: identity.tokenIdentifier,
+        location,
+        crops,
+        smartContext: smartContextStored,
+        voiceScript,
+        alerts,
+        highway,
+        subsidies,
+      });
+    } catch (persistErr) {
+      console.error(
+        "[KV:Smart] saveBriefing failed — returning briefing without persisting",
+        persistErr
+      );
+    }
 
     for (const alert of alerts) {
       const cat = alert.category as
@@ -370,17 +521,21 @@ export const getSmartContext = action({
         ["weather", "highway", "subsidy", "pest", "market"].includes(cat) &&
         ["critical", "warning", "info"].includes(sev)
       ) {
-        await ctx.runMutation(internal.smartContextMutations.saveAlert, {
-          category: cat,
-          severity: sev,
-          title: alert.title || "",
-          body: alert.body || "",
-          bodyKashmiri: (alert as Record<string, string>).bodyKashmiri || undefined,
-        });
+        try {
+          await ctx.runMutation(internal.smartContextMutations.saveAlert, {
+            category: cat,
+            severity: sev,
+            title: alert.title || "",
+            body: alert.body || "",
+            bodyKashmiri: alert.bodyKashmiri,
+          });
+        } catch (alertErr) {
+          console.error("[KV:Smart] saveAlert failed (non-fatal)", alertErr);
+        }
       }
     }
 
-    return briefing;
+    return toConvexSafeReturn(briefing);
   },
 });
 
