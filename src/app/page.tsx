@@ -25,10 +25,15 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
+  ArrowRight,
   RefreshCw,
   Volume2,
   Zap,
   Heart,
+  Globe,
+  Sparkles,
+  BookOpen,
 } from "lucide-react";
 
 /* ────────────────────────────────────────────
@@ -212,6 +217,127 @@ interface BriefingData {
 }
 
 /* ────────────────────────────────────────────
+   Language & i18n
+   ──────────────────────────────────────────── */
+
+type AppLanguage = "kashmiri" | "hindi" | "english";
+
+const LANGUAGES: {
+  id: AppLanguage;
+  name: string;
+  nativeName: string;
+  script: string;
+  emoji: string;
+  greeting: string;
+  dir: "ltr" | "rtl";
+}[] = [
+  {
+    id: "kashmiri",
+    name: "Kashmiri",
+    nativeName: "کٲشُر",
+    script: "Nastaliq",
+    emoji: "🏔️",
+    greeting: "اسلام علیکم",
+    dir: "rtl",
+  },
+  {
+    id: "hindi",
+    name: "Hindi",
+    nativeName: "हिन्दी",
+    script: "Devanagari",
+    emoji: "🇮🇳",
+    greeting: "नमस्ते",
+    dir: "ltr",
+  },
+  {
+    id: "english",
+    name: "English",
+    nativeName: "English",
+    script: "Latin",
+    emoji: "🌐",
+    greeting: "Hello",
+    dir: "ltr",
+  },
+];
+
+const UI_STRINGS: Record<
+  AppLanguage,
+  {
+    welcomeTitle: string;
+    welcomeSubtitle: string;
+    chooseLanguage: string;
+    next: string;
+    getStarted: string;
+    featureGuideTitle: string;
+    featureGuideSubtitle: string;
+    feature1Title: string;
+    feature1Desc: string;
+    feature2Title: string;
+    feature2Desc: string;
+    feature3Title: string;
+    feature3Desc: string;
+    feature4Title: string;
+    feature4Desc: string;
+  }
+> = {
+  kashmiri: {
+    welcomeTitle: "کِسان وائس مٕنٛز خوش آمدید",
+    welcomeSubtitle: "پہلٕ زبان مُنتخب کرِو",
+    chooseLanguage: "زبان چُنِو",
+    next: "اگاد",
+    getStarted: "شروع کرِو",
+    featureGuideTitle: "تُہٕنٛد رہنُمایی",
+    featureGuideSubtitle: "یِم چیزٕ کَرٕ سَکِو تُہٕ",
+    feature1Title: "🎤 آواز سٕتھ پُچھِو",
+    feature1Desc: "بٹن دبایِو تہٕ بولِو — اپنہٕ زبانٕ مَنٛز منڈی نرخ پُچھِو",
+    feature2Title: "📊 صُبٲح کی بریفنگ",
+    feature2Desc: "موسم، سڑک، سبسڈی تہٕ بازار — ہَر صبٲح تازہ خبریٖں",
+    feature3Title: "🛣️ این ایچ ۴۴ سٹیٹس",
+    feature3Desc: "ہائیوے بند ہویٕ تٕ فصل نٕ کٹِو — ایپ خبردار کٔرٕ",
+    feature4Title: "🌾 ذہین مشورٕ",
+    feature4Desc: "کیڑے مکوڑے، سبسڈی ڈیڈلاین — سٮ۪ب خبریٖں اکٹھٕ",
+  },
+  hindi: {
+    welcomeTitle: "KisanVoice में आपका स्वागत है",
+    welcomeSubtitle: "पहले अपनी भाषा चुनें",
+    chooseLanguage: "भाषा चुनें",
+    next: "आगे",
+    getStarted: "शुरू करें",
+    featureGuideTitle: "आपकी गाइड",
+    featureGuideSubtitle: "आप ये सब कर सकते हैं",
+    feature1Title: "🎤 आवाज़ से पूछें",
+    feature1Desc: "बटन दबाएं और बोलें — अपनी भाषा में मंडी भाव पूछें",
+    feature2Title: "📊 सुबह की ब्रीफिंग",
+    feature2Desc: "मौसम, सड़क, सब्सिडी और बाजार — हर सुबह ताज़ा जानकारी",
+    feature3Title: "🛣️ NH44 स्टेटस",
+    feature3Desc: "हाईवे बंद हो तो फसल न काटें — ऐप आपको बताएगा",
+    feature4Title: "🌾 स्मार्ट सलाह",
+    feature4Desc: "कीड़े-मकोड़े, सब्सिडी डेडलाइन — सब जानकारी एक जगह",
+  },
+  english: {
+    welcomeTitle: "Welcome to KisanVoice",
+    welcomeSubtitle: "First, choose your language",
+    chooseLanguage: "Choose Language",
+    next: "Next",
+    getStarted: "Get Started",
+    featureGuideTitle: "Your Quick Guide",
+    featureGuideSubtitle: "Here's what you can do",
+    feature1Title: "🎤 Ask with Voice",
+    feature1Desc:
+      "Tap the mic and speak — ask mandi prices in your own language",
+    feature2Title: "📊 Morning Briefing",
+    feature2Desc:
+      "Weather, highway, subsidies, and market — fresh intel every morning",
+    feature3Title: "🛣️ NH44 Status",
+    feature3Desc:
+      "Highway closed? The app warns you not to harvest perishables",
+    feature4Title: "🌾 Smart Advice",
+    feature4Desc:
+      "Pest alerts, subsidy deadlines — all intelligence in one place",
+  },
+};
+
+/* ────────────────────────────────────────────
    Main Page
    ──────────────────────────────────────────── */
 
@@ -219,12 +345,54 @@ export default function KisanVoice() {
   const { user, isLoaded } = useUser();
   const storeUser = useMutation(api.users.store);
   const currentUser = useQuery(api.users.current);
+  const completeOnboarding = useMutation(api.users.completeOnboarding);
 
   useEffect(() => {
     if (isLoaded && user) {
       storeUser().catch(() => {});
     }
   }, [isLoaded, user, storeUser]);
+
+  /* ── Onboarding state ── */
+  const [onboardingStep, setOnboardingStep] = useState<
+    "loading" | "language" | "guide" | "done"
+  >("loading");
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<AppLanguage>("kashmiri");
+
+  useEffect(() => {
+    if (currentUser === undefined) return; // still loading
+    if (currentUser === null) {
+      setOnboardingStep("language");
+      return;
+    }
+    if (currentUser.onboardingComplete) {
+      setSelectedLanguage(
+        (currentUser.language as AppLanguage) || "kashmiri"
+      );
+      setOnboardingStep("done");
+    } else {
+      if (currentUser.language) {
+        setSelectedLanguage(currentUser.language as AppLanguage);
+      }
+      setOnboardingStep("language");
+    }
+  }, [currentUser]);
+
+  const handleLanguageNext = useCallback(() => {
+    setOnboardingStep("guide");
+  }, []);
+
+  const handleOnboardingComplete = useCallback(async () => {
+    try {
+      await completeOnboarding({ language: selectedLanguage });
+      setOnboardingStep("done");
+    } catch {
+      setOnboardingStep("done");
+    }
+  }, [completeOnboarding, selectedLanguage]);
+
+  const t = UI_STRINGS[selectedLanguage];
 
   const [activeQueryId, setActiveQueryId] = useState<Id<"queries"> | null>(
     null
@@ -500,7 +668,47 @@ export default function KisanVoice() {
 
   const firstName = user?.firstName || "Farmer";
 
-  /* ── Render ── */
+  /* ── Onboarding gates ── */
+
+  if (onboardingStep === "loading") {
+    return (
+      <main className="min-h-screen bg-[#0a1009] flex items-center justify-center">
+        <div className="text-center">
+          <Wheat
+            className="w-16 h-16 text-[#8eff71] mx-auto mb-6 animate-pulse"
+            strokeWidth={2}
+          />
+          <p className="text-[22px] font-extrabold text-[#f8fef3] tracking-tight">
+            KisanVoice
+          </p>
+          <Loader2 className="w-6 h-6 text-[#8eff71] animate-spin mx-auto mt-4" />
+        </div>
+      </main>
+    );
+  }
+
+  if (onboardingStep === "language") {
+    return (
+      <LanguageSelectScreen
+        selectedLanguage={selectedLanguage}
+        onSelect={setSelectedLanguage}
+        onNext={handleLanguageNext}
+        t={t}
+      />
+    );
+  }
+
+  if (onboardingStep === "guide") {
+    return (
+      <FeatureGuideScreen
+        language={selectedLanguage}
+        onComplete={handleOnboardingComplete}
+        t={t}
+      />
+    );
+  }
+
+  /* ── Main App Render ── */
   return (
     <main className="min-h-screen bg-[#0a1009] flex flex-col font-sans text-[#f8fef3]">
       {/* ── Critical Alert Ticker ── */}
@@ -672,6 +880,305 @@ export default function KisanVoice() {
           )}
         </div>
       </div>
+    </main>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Language Selection Screen
+   ──────────────────────────────────────────── */
+
+function LanguageSelectScreen({
+  selectedLanguage,
+  onSelect,
+  onNext,
+  t,
+}: {
+  selectedLanguage: AppLanguage;
+  onSelect: (lang: AppLanguage) => void;
+  onNext: () => void;
+  t: (typeof UI_STRINGS)[AppLanguage];
+}) {
+  const activeLang = LANGUAGES.find((l) => l.id === selectedLanguage)!;
+
+  return (
+    <main className="min-h-screen bg-[#0a1009] flex flex-col items-center justify-center px-5 py-10 font-sans text-[#f8fef3] relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#8eff71]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#ffd709]/5 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-3 mb-10">
+        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
+        <div className="w-10 h-1.5 rounded-full bg-[#434a41]/40" />
+      </div>
+
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-3">
+        <Wheat className="w-10 h-10 text-[#8eff71]" strokeWidth={2} />
+        <span className="text-[28px] font-extrabold tracking-tight">
+          KisanVoice
+        </span>
+      </div>
+
+      <p className="text-[16px] text-[#a6ada3] mb-2 font-medium">
+        {t.welcomeSubtitle}
+      </p>
+
+      {/* Animated greeting */}
+      <div className="h-16 flex items-center justify-center mb-8">
+        <p
+          key={activeLang.id}
+          dir={activeLang.dir}
+          className="text-[32px] font-extrabold text-[#8eff71] animate-[fadeInUp_0.4s_ease-out]"
+          style={{
+            fontFamily:
+              activeLang.dir === "rtl"
+                ? "var(--font-noto-nastaliq)"
+                : "inherit",
+          }}
+        >
+          {activeLang.greeting} 👋
+        </p>
+      </div>
+
+      {/* Language picker label */}
+      <div className="flex items-center gap-2.5 mb-5">
+        <Globe className="w-5 h-5 text-[#8eff71]" />
+        <span className="text-[14px] font-extrabold text-[#8eff71] uppercase tracking-[0.15em]">
+          {t.chooseLanguage}
+        </span>
+      </div>
+
+      {/* Language cards */}
+      <div className="w-full max-w-sm space-y-3 mb-10">
+        {LANGUAGES.map((lang) => {
+          const isActive = lang.id === selectedLanguage;
+          return (
+            <button
+              key={lang.id}
+              onClick={() => onSelect(lang.id)}
+              className={[
+                "w-full flex items-center gap-4 px-5 py-5 rounded-[20px] border transition-all duration-300 cursor-pointer",
+                "active:scale-[0.98]",
+                isActive
+                  ? "bg-[#8eff71]/10 border-[#8eff71]/40 shadow-[0_0_32px_rgba(142,255,113,0.1)]"
+                  : "bg-[#141b14] border-[#434a41]/20 hover:bg-[#192219] hover:border-[#434a41]/40",
+              ].join(" ")}
+            >
+              <span className="text-[32px]">{lang.emoji}</span>
+              <div className="flex-1 text-left">
+                <p
+                  className={`text-[18px] font-extrabold ${isActive ? "text-[#8eff71]" : "text-[#f8fef3]"}`}
+                >
+                  {lang.nativeName}
+                </p>
+                <p className="text-[14px] text-[#a6ada3] font-medium">
+                  {lang.name} · {lang.script}
+                </p>
+              </div>
+              <div
+                className={[
+                  "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all",
+                  isActive
+                    ? "border-[#8eff71] bg-[#8eff71]"
+                    : "border-[#434a41]/40",
+                ].join(" ")}
+              >
+                {isActive && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                  >
+                    <path
+                      d="M3 7L6 10L11 4"
+                      stroke="#050a05"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Next button */}
+      <button
+        onClick={onNext}
+        className="w-full max-w-sm py-5 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[18px] font-extrabold text-[18px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_48px_rgba(142,255,113,0.5)] cursor-pointer active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+      >
+        {t.next}
+        <ArrowRight className="w-5 h-5" />
+      </button>
+    </main>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Feature Guide Screen
+   ──────────────────────────────────────────── */
+
+function FeatureGuideScreen({
+  language,
+  onComplete,
+  t,
+}: {
+  language: AppLanguage;
+  onComplete: () => void;
+  t: (typeof UI_STRINGS)[AppLanguage];
+}) {
+  const features = [
+    {
+      title: t.feature1Title,
+      desc: t.feature1Desc,
+      icon: <Mic className="w-7 h-7" />,
+      color: "from-[#8eff71]/15 to-transparent border-[#8eff71]/20",
+      iconColor: "text-[#8eff71]",
+    },
+    {
+      title: t.feature2Title,
+      desc: t.feature2Desc,
+      icon: <Zap className="w-7 h-7" />,
+      color: "from-[#ffd709]/15 to-transparent border-[#ffd709]/20",
+      iconColor: "text-[#ffd709]",
+    },
+    {
+      title: t.feature3Title,
+      desc: t.feature3Desc,
+      icon: <Truck className="w-7 h-7" />,
+      color: "from-[#60a5fa]/15 to-transparent border-[#60a5fa]/20",
+      iconColor: "text-[#60a5fa]",
+    },
+    {
+      title: t.feature4Title,
+      desc: t.feature4Desc,
+      icon: <Sparkles className="w-7 h-7" />,
+      color: "from-[#a78bfa]/15 to-transparent border-[#a78bfa]/20",
+      iconColor: "text-[#a78bfa]",
+    },
+  ];
+
+  return (
+    <main className="min-h-screen bg-[#0a1009] flex flex-col items-center px-5 py-10 font-sans text-[#f8fef3] relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#8eff71]/4 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
+        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-2">
+        <BookOpen className="w-8 h-8 text-[#8eff71]" />
+        <h1
+          className="text-[26px] font-extrabold tracking-tight"
+          dir={language === "kashmiri" ? "rtl" : "ltr"}
+          style={{
+            fontFamily:
+              language === "kashmiri"
+                ? "var(--font-noto-nastaliq)"
+                : "inherit",
+          }}
+        >
+          {t.featureGuideTitle}
+        </h1>
+      </div>
+      <p
+        className="text-[16px] text-[#a6ada3] mb-8 font-medium text-center max-w-xs"
+        dir={language === "kashmiri" ? "rtl" : "ltr"}
+        style={{
+          fontFamily:
+            language === "kashmiri"
+              ? "var(--font-noto-nastaliq)"
+              : "inherit",
+        }}
+      >
+        {t.featureGuideSubtitle}
+      </p>
+
+      {/* Feature cards */}
+      <div className="w-full max-w-sm space-y-4 mb-10">
+        {features.map((f, i) => (
+          <div
+            key={i}
+            className={`bg-gradient-to-br ${f.color} rounded-[20px] border p-5 flex items-start gap-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md`}
+            style={{
+              animationDelay: `${i * 100}ms`,
+              animation: "fadeInUp 0.5s ease-out both",
+            }}
+          >
+            <div
+              className={`w-12 h-12 rounded-[14px] bg-[#0a1009]/60 flex items-center justify-center shrink-0 ${f.iconColor}`}
+            >
+              {f.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-[17px] font-extrabold text-[#f8fef3] mb-1 leading-snug"
+                dir={language === "kashmiri" ? "rtl" : "ltr"}
+                style={{
+                  fontFamily:
+                    language === "kashmiri"
+                      ? "var(--font-noto-nastaliq)"
+                      : "inherit",
+                }}
+              >
+                {f.title}
+              </p>
+              <p
+                className="text-[14px] text-[#a6ada3] leading-relaxed"
+                dir={language === "kashmiri" ? "rtl" : "ltr"}
+                style={{
+                  fontFamily:
+                    language === "kashmiri"
+                      ? "var(--font-noto-nastaliq)"
+                      : "inherit",
+                }}
+              >
+                {f.desc}
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#434a41] shrink-0 mt-1" />
+          </div>
+        ))}
+      </div>
+
+      {/* Get Started button */}
+      <button
+        onClick={onComplete}
+        className="w-full max-w-sm py-5 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[18px] font-extrabold text-[18px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_48px_rgba(142,255,113,0.5)] cursor-pointer active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+        dir={language === "kashmiri" ? "rtl" : "ltr"}
+        style={{
+          fontFamily:
+            language === "kashmiri"
+              ? "var(--font-noto-nastaliq)"
+              : "inherit",
+        }}
+      >
+        <Sparkles className="w-5 h-5" />
+        {t.getStarted}
+      </button>
+
+      {/* Keyframe animation styles */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </main>
   );
 }
@@ -1430,3 +1937,4 @@ function MiniResultCard({ data }: { data: PriceData }) {
     </div>
   );
 }
+
