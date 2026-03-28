@@ -50,14 +50,18 @@ export const processFarmerQuery = action({
         status: "searching",
       });
 
-      console.log("[KV] Step 2/3: Searching mandi prices via Exa...");
-      const searchResults = await searchMandiPrices(transcript);
-      console.log(`[KV] Search complete: ${searchResults.length} chars of results`);
+      console.log("[KV] Step 2/4: Searching mandi prices + highway status via Exa (parallel)...");
+      const [searchResults, highwayResults] = await Promise.all([
+        searchMandiPrices(transcript),
+        searchHighwayStatus(),
+      ]);
+      console.log(`[KV] Search complete: prices=${searchResults.length} chars, highway=${highwayResults.length} chars`);
 
-      console.log("[KV] Step 3/3: Structuring response via Groq LLM...");
+      console.log("[KV] Step 3/4: Structuring response via Groq LLM...");
       const structuredResponse = await structureResponse(
         transcript,
-        searchResults
+        searchResults,
+        highwayResults
       );
       console.log("[KV] Pipeline complete!");
 
@@ -170,15 +174,53 @@ async function searchMandiPrices(transcript: string): Promise<string> {
   );
 }
 
+async function searchHighwayStatus(): Promise<string> {
+  const EXA_API_KEY = process.env.EXA_API_KEY;
+  if (!EXA_API_KEY) return "Highway status unavailable";
+
+  try {
+    const response = await fetch("https://api.exa.ai/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": EXA_API_KEY,
+      },
+      body: JSON.stringify({
+        query: "Srinagar Jammu highway NH44 status today open closed traffic",
+        type: "neural",
+        useAutoprompt: true,
+        numResults: 2,
+        contents: { text: { maxCharacters: 600 } },
+      }),
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+
+    if (!response.ok) return "Highway status unavailable";
+
+    const data: {
+      results?: Array<{ title?: string; text?: string; url?: string }>;
+    } = await response.json();
+
+    return (
+      data.results
+        ?.map((r) => `${r.title || ""}\n${r.text || ""}`)
+        .join("\n---\n") || "No highway info found."
+    );
+  } catch {
+    return "Highway status unavailable";
+  }
+}
+
 async function structureResponse(
   transcript: string,
-  searchResults: string
+  searchResults: string,
+  highwayContext?: string
 ): Promise<Record<string, unknown>> {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY is not configured");
 
   const systemPrompt = `You are an agricultural market analyst for farmers in Kashmir, India.
-Given a farmer's voice query (transcribed from Kashmiri, Hindi, or Urdu) and web search results about mandi prices, extract and return structured price information.
+Given a farmer's voice query (transcribed from Kashmiri, Hindi, or Urdu), web search results about mandi prices, and NH44 highway status, extract and return structured price information with logistics advice.
 
 You MUST respond with valid JSON matching this schema exactly:
 {
@@ -196,7 +238,13 @@ You MUST respond with valid JSON matching this schema exactly:
   "summaryLocal": "Same summary in simple Hindi using Devanagari script",
   "summaryKashmiri": "Same summary in simple Kashmiri using Nastaliq (Perso-Arabic) script",
   "confidence": "high" | "medium" | "low",
-  "additionalInfo": "Optional farming tip or market insight, or null"
+  "additionalInfo": "Optional farming tip or market insight, or null",
+  "highway": {
+    "status": "open" | "closed" | "restricted" | "unknown",
+    "detail": "1 sentence about NH44 Srinagar-Jammu highway current status",
+    "advice": "Actionable advice: if closed, tell farmer not to harvest perishables; if open, good to transport"
+  },
+  "highwayKashmiri": "1 sentence highway advice in Kashmiri Nastaliq"
 }
 
 Rules:
@@ -205,7 +253,9 @@ Rules:
 - Keep summaries extremely simple — the audience may have limited literacy
 - ALWAYS include the Kashmiri Nastaliq translation (summaryKashmiri) — this is the primary language
 - Also include Hindi/Devanagari (summaryLocal) as a secondary language
-- For commodityKashmiri, use common Kashmiri names: ٹشونٹھ (apple), دوٗن (walnut), کونگ (saffron), تامُل (rice), کَنَک (wheat), بادام (almond)`;
+- For commodityKashmiri, use common Kashmiri names: ٹشونٹھ (apple), دوٗن (walnut), کونگ (saffron), تامُل (rice), کَنَک (wheat), بادام (almond)
+- CRITICAL: If NH44 highway is CLOSED, the advice MUST warn: "Prices are good but road is closed — don't harvest perishables yet"
+- If highway status is unknown, set status to "unknown" and give neutral advice`;
 
   const response = await fetch(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -221,7 +271,7 @@ Rules:
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Farmer's query: "${transcript}"\n\nSearch results about mandi prices:\n${searchResults}`,
+            content: `Farmer's query: "${transcript}"\n\nSearch results about mandi prices:\n${searchResults}\n\n--- NH44 Highway Status ---\n${highwayContext || "Not available"}`,
           },
         ],
         temperature: 0.2,

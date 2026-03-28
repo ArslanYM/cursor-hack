@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ConvexClientProvider } from "./ConvexClientProvider";
+import { ServiceWorkerRegistration } from "./ServiceWorkerRegistration";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
     title: "KisanVoice",
   },
   formatDetection: { telephone: false },
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -34,7 +36,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#fefdf8",
+  themeColor: "#0a1009",
 };
 
 export default function RootLayout({
@@ -49,6 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

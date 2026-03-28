@@ -16,8 +16,19 @@ import {
   MapPin,
   Clock,
   Shield,
-  RefreshCw,
   MessageCircle,
+  CloudRain,
+  Truck,
+  AlertTriangle,
+  Landmark,
+  Bug,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Volume2,
+  Zap,
+  Heart,
 } from "lucide-react";
 
 /* ────────────────────────────────────────────
@@ -104,6 +115,42 @@ function timeAgo(ts: number): string {
   return `${days}d ago`;
 }
 
+const ALERT_CONFIG: Record<
+  string,
+  { Icon: typeof CloudRain; color: string; bg: string; label: string }
+> = {
+  weather: {
+    Icon: CloudRain,
+    color: "text-[#60a5fa]",
+    bg: "bg-[#60a5fa]/10 border-[#60a5fa]/30",
+    label: "Weather",
+  },
+  highway: {
+    Icon: Truck,
+    color: "text-[#f59e0b]",
+    bg: "bg-[#f59e0b]/10 border-[#f59e0b]/30",
+    label: "Highway",
+  },
+  subsidy: {
+    Icon: Landmark,
+    color: "text-[#a78bfa]",
+    bg: "bg-[#a78bfa]/10 border-[#a78bfa]/30",
+    label: "Subsidy",
+  },
+  pest: {
+    Icon: Bug,
+    color: "text-[#f97316]",
+    bg: "bg-[#f97316]/10 border-[#f97316]/30",
+    label: "Pest Alert",
+  },
+  market: {
+    Icon: BarChart3,
+    color: "text-[#34d399]",
+    bg: "bg-[#34d399]/10 border-[#34d399]/30",
+    label: "Market",
+  },
+};
+
 /* ────────────────────────────────────────────
    Types
    ──────────────────────────────────────────── */
@@ -124,15 +171,54 @@ interface PriceData {
   summaryKashmiri?: string;
   confidence: "high" | "medium" | "low";
   additionalInfo: string | null;
+  highway?: {
+    status: string;
+    detail: string;
+    advice: string;
+  };
+  highwayKashmiri?: string;
+}
+
+interface BriefingData {
+  morningBriefing?: string;
+  morningBriefingKashmiri?: string;
+  morningBriefingHindi?: string;
+  voiceScript?: string;
+  alerts?: Array<{
+    category: string;
+    severity: string;
+    title: string;
+    titleKashmiri?: string;
+    body: string;
+    bodyKashmiri?: string;
+    bodyHindi?: string;
+  }>;
+  highway?: {
+    status: string;
+    detail: string;
+    advice: string;
+  };
+  subsidies?: Array<{
+    name: string;
+    deadline?: string;
+    detail: string;
+  }>;
+  pestWarnings?: Array<{
+    crop: string;
+    issue: string;
+    action: string;
+  }>;
+  marketVibe?: string;
 }
 
 /* ────────────────────────────────────────────
-   Main Page — Chat Interface
+   Main Page
    ──────────────────────────────────────────── */
 
 export default function KisanVoice() {
   const { user, isLoaded } = useUser();
   const storeUser = useMutation(api.users.store);
+  const currentUser = useQuery(api.users.current);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -146,6 +232,10 @@ export default function KisanVoice() {
   const [isRecording, setIsRecording] = useState(false);
   const [isPipelinePending, setIsPipelinePending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [briefingData, setBriefingData] = useState<BriefingData | null>(null);
+  const [isBriefingLoading, setIsBriefingLoading] = useState(false);
+  const [showBriefingDetail, setShowBriefingDetail] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "intel">("chat");
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -164,6 +254,7 @@ export default function KisanVoice() {
 
   const createQuery = useMutation(api.farmerQuery.createQuery);
   const processQuery = useAction(api.farmerActions.processFarmerQuery);
+  const getSmartContext = useAction(api.smartContext.getSmartContext);
 
   const activeQueryData = useQuery(
     api.farmerQuery.getQueryById,
@@ -171,6 +262,26 @@ export default function KisanVoice() {
   );
 
   const history = useQuery(api.farmerQuery.getUserHistory) ?? [];
+  const latestBriefing = useQuery(api.smartContextQueries.getLatestBriefing);
+  const criticalAlerts = useQuery(api.smartContextQueries.getCriticalAlerts) ?? [];
+
+  useEffect(() => {
+    if (latestBriefing?.smartContext && !briefingData) {
+      try {
+        const parsed = JSON.parse(latestBriefing.smartContext);
+        setBriefingData(parsed);
+        // Cache for offline access
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "CACHE_BRIEFING",
+            payload: parsed,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [latestBriefing, briefingData]);
 
   useEffect(() => {
     if (activeQueryData?.status === "error") {
@@ -187,7 +298,30 @@ export default function KisanVoice() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history?.length, activeQueryData?.status, isPipelinePending]);
 
-  /* ── Silence detection cleanup ── */
+  /* ── Fetch smart context / briefing ── */
+  const fetchBriefing = useCallback(async () => {
+    setIsBriefingLoading(true);
+    try {
+      const result = await getSmartContext({
+        location: currentUser?.location || "Srinagar",
+        crops: currentUser?.crops || ["Apple", "Walnut", "Saffron"],
+      });
+      const data = result as unknown as BriefingData;
+      setBriefingData(data);
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "CACHE_BRIEFING",
+          payload: data,
+        });
+      }
+    } catch (err) {
+      console.error("Briefing fetch failed:", err);
+    } finally {
+      setIsBriefingLoading(false);
+    }
+  }, [getSmartContext, currentUser?.location, currentUser?.crops]);
+
+  /* ── VAD cleanup ── */
   const cleanupAudioAnalysis = useCallback(() => {
     if (rafIdRef.current) {
       cancelAnimationFrame(rafIdRef.current);
@@ -203,7 +337,6 @@ export default function KisanVoice() {
     calibrationSamplesRef.current = [];
   }, []);
 
-  /* ── Stop recording ── */
   const stopRecording = useCallback(() => {
     if (!isRecordingRef.current) return;
     isRecordingRef.current = false;
@@ -215,17 +348,17 @@ export default function KisanVoice() {
       try {
         rec.requestData();
       } catch {
-        /* optional in some browsers */
+        /* optional */
       }
       rec.stop();
     }
   }, [cleanupAudioAnalysis]);
 
-  /* ── Start recording ── */
   const startRecording = useCallback(async () => {
     setError(null);
     setActiveQueryId(null);
     setIsPipelinePending(false);
+    setActiveTab("chat");
     haptic(50);
 
     try {
@@ -259,9 +392,7 @@ export default function KisanVoice() {
           const blob = new Blob(chunksRef.current, { type: mimeType });
           const base64 = await blobToBase64(blob);
 
-          const qId = await createQuery({
-            status: "transcribing",
-          });
+          const qId = await createQuery({ status: "transcribing" });
           setActiveQueryId(qId);
 
           await processQuery({
@@ -283,7 +414,6 @@ export default function KisanVoice() {
       isRecordingRef.current = true;
       setIsRecording(true);
 
-      /* ── Adaptive VAD via RMS energy detection ── */
       const audioCtx = new AudioContext();
       audioCtxRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
@@ -359,7 +489,6 @@ export default function KisanVoice() {
     }
   }, [isRecording, startRecording, stopRecording]);
 
-  /* ── Derived state ── */
   const isProcessing =
     isPipelinePending ||
     activeQueryData?.status === "transcribing" ||
@@ -373,185 +502,137 @@ export default function KisanVoice() {
 
   /* ── Render ── */
   return (
-    <main className="min-h-screen bg-background flex flex-col">
+    <main className="min-h-screen bg-[#0a1009] flex flex-col font-sans text-[#f8fef3]">
+      {/* ── Critical Alert Ticker ── */}
+      {criticalAlerts.length > 0 && (
+        <AlertTicker alerts={criticalAlerts} />
+      )}
+
       {/* ── Top Bar ── */}
-      <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-card-border px-5 py-3">
+      <header className="sticky top-0 z-30 bg-[#0a1009]/80 backdrop-blur-[24px] border-b border-[#434a41]/15 px-5 py-4">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2.5">
-            <Wheat className="w-6 h-6 text-primary" strokeWidth={2.5} />
-            <span className="text-[20px] font-extrabold tracking-tight text-foreground">
+          <div className="flex items-center gap-3">
+            <Wheat className="w-7 h-7 text-[#8eff71]" strokeWidth={2.5} />
+            <span className="text-[22px] font-extrabold tracking-tight text-[#f8fef3]">
               KisanVoice
             </span>
           </div>
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "w-10 h-10",
-              },
-            }}
-          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchBriefing}
+              disabled={isBriefingLoading}
+              className="w-10 h-10 rounded-full bg-[#141b14] border border-[#434a41]/30 flex items-center justify-center cursor-pointer hover:bg-[#192219] transition-colors active:scale-95"
+              aria-label="Get morning briefing"
+            >
+              {isBriefingLoading ? (
+                <Loader2 className="w-5 h-5 text-[#8eff71] animate-spin" />
+              ) : (
+                <Zap className="w-5 h-5 text-[#ffd709]" />
+              )}
+            </button>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-10 h-10 border-2 border-[#192219]",
+                },
+              }}
+            />
+          </div>
         </div>
       </header>
 
-      {/* ── Chat Area ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg mx-auto w-full">
-        {/* Welcome message (always shown at top) */}
-        <div className="mb-6">
-          <div className="bg-card border border-card-border rounded-2xl p-5 shadow-sm">
-            <p className="text-[20px] font-bold text-foreground mb-1">
-              <Kas>اسلام علیکم</Kas> {firstName}! 👋
-            </p>
-            <p className="text-[17px] text-muted leading-relaxed">
-              <Kas>بٹن دبایِو تہٕ بولِو — منڈی نرخ پُچھِو</Kas>
-            </p>
-            <p className="text-[14px] text-muted/70 mt-1">
-              बटन दबाएं और बोलें — मंडी भाव पूछें
-            </p>
-          </div>
+      {/* ── Tab Bar ── */}
+      <div className="px-5 pt-4 max-w-lg mx-auto w-full">
+        <div className="flex bg-[#141b14] rounded-[16px] p-1.5 border border-[#434a41]/15">
+          <button
+            onClick={() => setActiveTab("chat")}
+            className={`flex-1 py-3 rounded-[12px] text-[15px] font-bold transition-all cursor-pointer ${
+              activeTab === "chat"
+                ? "bg-[#8eff71] text-[#050a05] shadow-[0_2px_12px_rgba(142,255,113,0.3)]"
+                : "text-[#a6ada3] hover:text-[#f8fef3]"
+            }`}
+          >
+            <Mic className="w-4 h-4 inline-block mr-2 -mt-0.5" />
+            <Kas className="text-[14px]">بولِو</Kas> · Ask
+          </button>
+          <button
+            onClick={() => setActiveTab("intel")}
+            className={`flex-1 py-3 rounded-[12px] text-[15px] font-bold transition-all cursor-pointer relative ${
+              activeTab === "intel"
+                ? "bg-[#8eff71] text-[#050a05] shadow-[0_2px_12px_rgba(142,255,113,0.3)]"
+                : "text-[#a6ada3] hover:text-[#f8fef3]"
+            }`}
+          >
+            <Zap className="w-4 h-4 inline-block mr-2 -mt-0.5" />
+            <Kas className="text-[14px]">خبریٖں</Kas> · Intel
+            {criticalAlerts.length > 0 && activeTab !== "intel" && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff7351] rounded-full text-[11px] font-black flex items-center justify-center text-white">
+                {criticalAlerts.length}
+              </span>
+            )}
+          </button>
         </div>
-
-        {/* Chat history */}
-        {completedChats
-          .slice()
-          .reverse()
-          .map((chat) => {
-            let parsed: PriceData | null = null;
-            try {
-              parsed = JSON.parse(chat.aiResponse!) as PriceData;
-            } catch {
-              /* skip bad entries */
-            }
-            return (
-              <div key={chat._id} className="mb-4">
-                {/* User bubble */}
-                {chat.transcript && (
-                  <div className="flex justify-end mb-2">
-                    <div className="bg-primary text-white rounded-2xl rounded-br-md px-5 py-3 max-w-[85%] shadow-sm">
-                      <p className="text-[18px] font-semibold leading-relaxed">
-                        🎤 {chat.transcript}
-                      </p>
-                      <p className="text-[12px] text-white/60 mt-1 text-right">
-                        {timeAgo(chat.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* AI response bubble */}
-                {parsed && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[92%]">
-                      <MiniResultCard data={parsed} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-        {/* Active recording / processing state */}
-        {isRecording && (
-          <div className="flex justify-end mb-2">
-            <div className="bg-danger/10 border-2 border-danger/30 rounded-2xl rounded-br-md px-5 py-3 max-w-[85%]">
-              <div className="flex items-center gap-3">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-danger" />
-                </span>
-                <span className="text-[18px] font-bold text-danger">
-                  <Kas>بۄزان چھِو...</Kas>
-                </span>
-                <span className="text-[14px] text-muted">सुन रहे हैं</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeQueryData?.transcript &&
-          activeQueryData.status !== "complete" && (
-            <div className="flex justify-end mb-2">
-              <div className="bg-primary text-white rounded-2xl rounded-br-md px-5 py-3 max-w-[85%] shadow-sm">
-                <p className="text-[18px] font-semibold leading-relaxed">
-                  🎤 {activeQueryData.transcript}
-                </p>
-              </div>
-            </div>
-          )}
-
-        {isProcessing && !isRecording && (
-          <div className="flex justify-start mb-2">
-            <div className="bg-card border border-card-border rounded-2xl rounded-bl-md px-5 py-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-[18px] font-bold text-foreground">
-                  <Kas>
-                    {activeQueryData?.status === "transcribing"
-                      ? "سمجان چھِو..."
-                      : "نرخ لبان چھِو..."}
-                  </Kas>
-                </span>
-              </div>
-              <p className="text-[14px] text-muted mt-1">
-                {activeQueryData?.status === "transcribing"
-                  ? "समझ रहे हैं..."
-                  : "कीमतें खोज रहे हैं..."}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="flex justify-start mb-2">
-            <div className="bg-danger-light border border-danger/20 rounded-2xl rounded-bl-md px-5 py-4 max-w-[92%]">
-              <p className="text-[16px] font-semibold text-danger">
-                ⚠️ {error}
-              </p>
-              <button
-                onClick={() => setError(null)}
-                className="mt-2 text-[14px] text-danger underline font-medium cursor-pointer"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div ref={chatEndRef} />
       </div>
 
-      {/* ── Bottom Suggestions (when no history) ── */}
-      {completedChats.length === 0 && !isRecording && !isProcessing && (
-        <div className="px-4 pb-3 max-w-lg mx-auto w-full">
-          <p className="text-[14px] text-muted text-center mb-2 font-medium">
-            <Kas>یِتھ بولِو:</Kas> · ऐसे बोलें:
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[
-              { emoji: "🍎", label: "سیب — सेब" },
-              { emoji: "🥜", label: "اخروٹ — अखरोट" },
-              { emoji: "🌸", label: "کونگ — केसर" },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="shrink-0 bg-card border border-card-border rounded-xl px-4 py-2.5 flex items-center gap-2"
-              >
-                <span className="text-[22px]">{s.emoji}</span>
-                <span className="text-[14px] font-semibold text-foreground/70 whitespace-nowrap">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── Content Area ── */}
+      {activeTab === "chat" ? (
+        <ChatTab
+          history={completedChats}
+          isRecording={isRecording}
+          isProcessing={isProcessing}
+          isPipelinePending={isPipelinePending}
+          activeQueryData={activeQueryData}
+          error={error}
+          setError={setError}
+          firstName={firstName}
+          chatEndRef={chatEndRef}
+        />
+      ) : (
+        <IntelTab
+          briefingData={briefingData}
+          isBriefingLoading={isBriefingLoading}
+          showDetail={showBriefingDetail}
+          setShowDetail={setShowBriefingDetail}
+          onRefresh={fetchBriefing}
+          criticalAlerts={criticalAlerts}
+        />
       )}
 
+      {/* ── Quick Suggestions (when no history, chat tab) ── */}
+      {activeTab === "chat" &&
+        completedChats.length === 0 &&
+        !isRecording &&
+        !isProcessing && (
+          <div className="px-5 pb-6 max-w-lg mx-auto w-full">
+            <p className="text-[13px] text-[#a6ada3] text-center mb-4 font-bold tracking-[0.1em] uppercase">
+              <Kas>یِتھ بولِو:</Kas> · Quick Queries
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { emoji: "🍎", label: "سیب" },
+                { emoji: "🥜", label: "اخروٹ" },
+                { emoji: "🌸", label: "کونگ" },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  className="bg-[#141b14] hover:bg-[#192219] transition-colors cursor-pointer border border-[#434a41]/20 rounded-[16px] px-3 py-4 flex flex-col items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_16px_rgba(142,255,113,0.05)] hover:-translate-y-0.5"
+                >
+                  <span className="text-[28px] drop-shadow-md">{s.emoji}</span>
+                  <span className="text-[16px] font-bold text-[#f8fef3]/90">
+                    <Kas>{s.label}</Kas>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       {/* ── Mic Bar (sticky bottom) ── */}
-      <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm border-t border-card-border px-4 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-center gap-4">
+      <div className="sticky bottom-0 z-30 bg-[#0a1009]/80 backdrop-blur-[24px] border-t border-[#434a41]/10 px-4 py-5">
+        <div className="max-w-lg mx-auto flex items-center justify-center gap-6">
           {completedChats.length > 0 && !isRecording && !isProcessing && (
-            <div className="flex items-center gap-1.5 text-[13px] text-muted">
-              <MessageCircle className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-[14px] font-bold text-[#a6ada3] bg-[#141b14] px-4 py-2 rounded-full border border-[#434a41]/20">
+              <MessageCircle className="w-4 h-4 text-[#8eff71]" />
               <span>{completedChats.length}</span>
             </div>
           )}
@@ -565,41 +646,31 @@ export default function KisanVoice() {
                 : "बोलना शुरू करें — Tap to speak"
             }
             className={[
-              "relative w-20 h-20 rounded-full flex items-center justify-center",
+              "relative w-24 h-24 rounded-full flex items-center justify-center overflow-hidden",
               "transition-all duration-300 active:scale-95 cursor-pointer",
-              "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/40",
+              "focus:outline-none",
               isRecording
-                ? "bg-danger shadow-[0_0_40px_rgba(220,38,38,0.3)] animate-recording-pulse"
+                ? "bg-[#ff7351] shadow-[0_0_40px_rgba(255,115,81,0.5)] scale-105"
                 : isProcessing
-                  ? "bg-primary/50 cursor-wait"
-                  : "bg-primary shadow-[0_4px_30px_rgba(232,93,4,0.35)] hover:shadow-[0_4px_40px_rgba(232,93,4,0.5)]",
-              "disabled:opacity-50 disabled:cursor-wait",
+                  ? "bg-[#1f281f] border-2 border-[#8eff71]/30 cursor-wait shadow-[0_4px_20px_rgba(142,255,113,0.1)]"
+                  : "bg-gradient-to-b from-[#8eff71] to-[#2be800] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_40px_rgba(142,255,113,0.5)] hover:-translate-y-1",
+              "disabled:opacity-70 disabled:cursor-wait",
             ].join(" ")}
           >
             {isProcessing ? (
-              <Loader2 className="w-9 h-9 text-white animate-spin" />
+              <Loader2 className="w-10 h-10 text-[#8eff71] animate-spin" />
             ) : isRecording ? (
-              <Square className="w-8 h-8 text-white fill-white" />
+              <Square className="w-10 h-10 text-[#000000] fill-[#000000]" />
             ) : (
-              <Mic className="w-9 h-9 text-white" strokeWidth={2} />
+              <Mic className="w-11 h-11 text-[#050a05]" strokeWidth={2.5} />
             )}
           </button>
 
-          <p className="text-[13px] text-muted font-medium w-20 text-center">
-            {isRecording ? (
-              <span className="text-danger font-bold">
-                <Kas>بولِو...</Kas>
-              </span>
-            ) : isProcessing ? (
-              <Kas>جاری...</Kas>
-            ) : (
-              <>
-                <Kas>بولِو</Kas>
-                <br />
-                <span className="text-[11px]">बोलें</span>
-              </>
-            )}
-          </p>
+          {!isRecording && !isProcessing && (
+            <p className="text-[14px] text-[#a6ada3] font-bold w-20 text-center leading-tight">
+              <Kas>بٹن دَبٲوِتھ بولِو</Kas>
+            </p>
+          )}
         </div>
       </div>
     </main>
@@ -607,27 +678,621 @@ export default function KisanVoice() {
 }
 
 /* ────────────────────────────────────────────
-   Mini Result Card (chat bubble style)
+   Alert Ticker (top of page)
+   ──────────────────────────────────────────── */
+
+function AlertTicker({
+  alerts,
+}: {
+  alerts: Array<{
+    _id: string;
+    category: string;
+    severity: string;
+    title: string;
+    body: string;
+    bodyKashmiri?: string;
+  }>;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (alerts.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((i) => (i + 1) % alerts.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [alerts.length]);
+
+  const alert = alerts[currentIndex];
+  if (!alert) return null;
+
+  const isCritical = alert.severity === "critical";
+  const config = ALERT_CONFIG[alert.category] || ALERT_CONFIG.weather;
+  const AlertIcon = config.Icon;
+
+  return (
+    <div
+      className={`w-full px-4 py-3 flex items-center gap-3 text-[14px] font-bold transition-colors ${
+        isCritical
+          ? "bg-[#ff7351]/15 border-b border-[#ff7351]/30 text-[#ff7351]"
+          : "bg-[#f59e0b]/10 border-b border-[#f59e0b]/20 text-[#f59e0b]"
+      }`}
+    >
+      <AlertIcon className="w-5 h-5 shrink-0" />
+      <div className="flex-1 min-w-0 overflow-hidden">
+        <p className="truncate">
+          <span className="font-extrabold">{alert.title}</span>
+          {" — "}
+          <span className="font-medium opacity-90">{alert.body}</span>
+        </p>
+      </div>
+      {alerts.length > 1 && (
+        <span className="shrink-0 text-[12px] opacity-70">
+          {currentIndex + 1}/{alerts.length}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Chat Tab
+   ──────────────────────────────────────────── */
+
+function ChatTab({
+  history,
+  isRecording,
+  isProcessing,
+  isPipelinePending,
+  activeQueryData,
+  error,
+  setError,
+  firstName,
+  chatEndRef,
+}: {
+  history: Array<{
+    _id: string;
+    transcript?: string;
+    aiResponse?: string;
+    timestamp: number;
+  }>;
+  isRecording: boolean;
+  isProcessing: boolean;
+  isPipelinePending: boolean;
+  activeQueryData: {
+    status?: string;
+    transcript?: string;
+    errorMessage?: string;
+  } | null | undefined;
+  error: string | null;
+  setError: (e: string | null) => void;
+  firstName: string;
+  chatEndRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full flex flex-col gap-6">
+      {!history.length && !isRecording && !isProcessing && (
+        <div className="bg-[#141b14] rounded-[24px] p-6 shadow-[0_8px_32px_rgba(142,255,113,0.03)] border border-[#434a41]/10">
+          <p className="text-[26px] font-extrabold text-[#f8fef3] mb-2 tracking-tight">
+            <Kas>اسلام علیکم</Kas> {firstName}! 👋
+          </p>
+          <p className="text-[18px] text-[#a6ada3] leading-relaxed">
+            <Kas>بٹن دبایِو تہٕ بولِو — منڈی نرخ پُچھِو</Kas>
+          </p>
+          <p className="text-[15px] text-[#a6ada3]/70 mt-2 font-medium">
+            बटन दबाएं और बोलें — मंडी भाव पूछें
+          </p>
+          <div className="mt-4 pt-4 border-t border-[#434a41]/15">
+            <p className="text-[14px] text-[#8eff71]/80 font-bold flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              <Kas>خبریٖں ٹیب دبایِو صُبٲح کی بریفنگ کٲتھ</Kas>
+            </p>
+            <p className="text-[13px] text-[#a6ada3]/60 mt-1">
+              Tap Intel tab for your morning briefing
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-6">
+        {history
+          .slice()
+          .reverse()
+          .map((chat) => {
+            let parsed: PriceData | null = null;
+            try {
+              parsed = JSON.parse(chat.aiResponse!) as PriceData;
+            } catch {
+              /* skip */
+            }
+            return (
+              <div key={chat._id} className="flex flex-col gap-4">
+                {chat.transcript && (
+                  <div className="flex justify-end">
+                    <div className="bg-gradient-to-br from-[#192219] to-[#1f281f] text-[#f8fef3] border border-[#8eff71]/20 rounded-[20px] rounded-br-[4px] px-5 py-4 max-w-[85%] shadow-[0_4px_16px_rgba(142,255,113,0.05)]">
+                      <p className="text-[17px] font-semibold leading-relaxed">
+                        🎤 {chat.transcript}
+                      </p>
+                      <p className="text-[12px] text-[#8eff71]/70 mt-2 text-right font-medium">
+                        {timeAgo(chat.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {parsed && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[95%]">
+                      <MiniResultCard data={parsed} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+      </div>
+
+      {isRecording && (
+        <div className="flex justify-end mt-4">
+          <div className="bg-[#1f281f]/80 backdrop-blur-md border border-[#ff7351]/40 rounded-[20px] rounded-br-[4px] px-5 py-4 max-w-[85%] shadow-[0_4px_20px_rgba(255,115,81,0.15)]">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff7351] opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ff7351]" />
+              </span>
+              <span className="text-[17px] font-bold text-[#ff7351]">
+                <Kas>بۄزان چھِو...</Kas>
+              </span>
+              <span className="text-[14px] text-[#ff7351]/80 font-medium ml-2">
+                सुन रहे हैं
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeQueryData?.transcript && activeQueryData.status !== "complete" && (
+        <div className="flex justify-end mt-4">
+          <div className="bg-gradient-to-br from-[#192219] to-[#1f281f] text-[#f8fef3] border border-[#8eff71]/20 rounded-[20px] rounded-br-[4px] px-5 py-4 max-w-[85%] shadow-[0_4px_16px_rgba(142,255,113,0.05)]">
+            <p className="text-[17px] font-semibold leading-relaxed">
+              🎤 {activeQueryData.transcript}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isProcessing && !isRecording && (
+        <div className="flex justify-start mt-4">
+          <div className="bg-[#141b14] border border-[#434a41]/20 rounded-[20px] rounded-bl-[4px] px-6 py-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <Loader2 className="w-6 h-6 animate-spin text-[#8eff71]" />
+              <span className="text-[18px] font-bold text-[#f8fef3]">
+                <Kas>
+                  {activeQueryData?.status === "transcribing"
+                    ? "سمجان چھِو..."
+                    : "نرخ لبان چھِو..."}
+                </Kas>
+              </span>
+            </div>
+            <p className="text-[14px] text-[#a6ada3] mt-2 font-medium ml-10">
+              {activeQueryData?.status === "transcribing"
+                ? "समझ रहे हैं..."
+                : "कीमतें खोज रहे हैं..."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex justify-start mt-4">
+          <div className="bg-[#1f281f] border border-[#ff7351]/30 rounded-[20px] rounded-bl-[4px] px-6 py-5 max-w-[92%]">
+            <p className="text-[16px] font-semibold text-[#ff7351]">
+              ⚠️ {error}
+            </p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-3 text-[14px] text-[#ff7351] underline font-bold cursor-pointer hover:text-[#ff7351]/80 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div ref={chatEndRef} className="h-4" />
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Intel Tab
+   ──────────────────────────────────────────── */
+
+function IntelTab({
+  briefingData,
+  isBriefingLoading,
+  showDetail,
+  setShowDetail,
+  onRefresh,
+  criticalAlerts,
+}: {
+  briefingData: BriefingData | null;
+  isBriefingLoading: boolean;
+  showDetail: boolean;
+  setShowDetail: (v: boolean) => void;
+  onRefresh: () => void;
+  criticalAlerts: Array<{
+    _id: string;
+    category: string;
+    severity: string;
+    title: string;
+    body: string;
+    bodyKashmiri?: string;
+  }>;
+}) {
+  if (isBriefingLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#8eff71] animate-spin mx-auto mb-4" />
+          <p className="text-[20px] font-bold text-[#f8fef3]">
+            <Kas>معلومات جمع کران چھِو...</Kas>
+          </p>
+          <p className="text-[15px] text-[#a6ada3] mt-2 font-medium">
+            Gathering intelligence from 5 sources...
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {["Weather", "Highway", "Subsidies", "Pests", "Market"].map(
+              (s) => (
+                <span
+                  key={s}
+                  className="px-3 py-1.5 bg-[#141b14] border border-[#434a41]/20 rounded-full text-[12px] font-bold text-[#a6ada3] animate-pulse"
+                >
+                  {s}
+                </span>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!briefingData) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="text-center max-w-sm">
+          <Zap className="w-16 h-16 text-[#ffd709]/40 mx-auto mb-4" />
+          <p className="text-[22px] font-extrabold text-[#f8fef3] mb-2">
+            <Kas>صبٲح کی بریفنگ</Kas>
+          </p>
+          <p className="text-[16px] text-[#a6ada3] mb-6 leading-relaxed">
+            <Kas>بٹن دَبٲوِتھ ہَر صُبح خبریٖں حاصل کرِو</Kas>
+          </p>
+          <p className="text-[14px] text-[#a6ada3]/70 mb-6">
+            Tap to get weather, highway, subsidies, pest alerts & market vibe
+          </p>
+          <button
+            onClick={onRefresh}
+            className="px-8 py-4 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[16px] font-extrabold text-[17px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_40px_rgba(142,255,113,0.5)] cursor-pointer active:scale-95 transition-all"
+          >
+            <Zap className="w-5 h-5 inline-block mr-2 -mt-0.5" />
+            <Kas>بریفنگ حاصل کرِو</Kas> · Get Briefing
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full space-y-5">
+      {/* Morning Briefing Card */}
+      <div className="bg-gradient-to-b from-[#192219] to-[#141b14] rounded-[24px] p-6 border border-[#8eff71]/15 shadow-[0_8px_32px_rgba(142,255,113,0.05)]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <Volume2 className="w-6 h-6 text-[#8eff71]" />
+            <span className="text-[16px] font-extrabold text-[#8eff71] uppercase tracking-wide">
+              Morning Briefing
+            </span>
+          </div>
+          <button
+            onClick={onRefresh}
+            className="w-9 h-9 rounded-full bg-[#0a1009] border border-[#434a41]/30 flex items-center justify-center cursor-pointer hover:bg-[#192219] transition-colors active:scale-95"
+            aria-label="Refresh briefing"
+          >
+            <RefreshCw className="w-4 h-4 text-[#a6ada3]" />
+          </button>
+        </div>
+
+        {briefingData.morningBriefingKashmiri && (
+          <p
+            dir="rtl"
+            className="text-[19px] leading-[1.8] text-[#f8fef3] font-nastaliq mb-3"
+          >
+            {briefingData.morningBriefingKashmiri}
+          </p>
+        )}
+
+        {briefingData.morningBriefingHindi && (
+          <p className="text-[15px] leading-relaxed text-[#a6ada3] mb-3">
+            {briefingData.morningBriefingHindi}
+          </p>
+        )}
+
+        {briefingData.morningBriefing && (
+          <p className="text-[14px] leading-relaxed text-[#a6ada3]/70">
+            {briefingData.morningBriefing}
+          </p>
+        )}
+
+        <button
+          onClick={() => setShowDetail(!showDetail)}
+          className="mt-4 flex items-center gap-2 text-[14px] font-bold text-[#8eff71] cursor-pointer hover:text-[#8eff71]/80 transition-colors"
+        >
+          {showDetail ? (
+            <>
+              <ChevronUp className="w-4 h-4" /> Less detail
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-4 h-4" /> More detail
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Expanded Details */}
+      {showDetail && (
+        <div className="space-y-4">
+          {/* Highway Status */}
+          {briefingData.highway && (
+            <IntelCard
+              icon={<Truck className="w-5 h-5" />}
+              title="NH44 Highway"
+              titleKas="این ایچ ۴۴ ہائیوے"
+              color={
+                briefingData.highway.status === "closed"
+                  ? "red"
+                  : briefingData.highway.status === "restricted"
+                    ? "yellow"
+                    : "green"
+              }
+            >
+              <p className="text-[15px] font-bold text-[#f8fef3] mb-1">
+                Status:{" "}
+                <span
+                  className={
+                    briefingData.highway.status === "closed"
+                      ? "text-[#ff7351]"
+                      : briefingData.highway.status === "restricted"
+                        ? "text-[#ffd709]"
+                        : "text-[#8eff71]"
+                  }
+                >
+                  {briefingData.highway.status.toUpperCase()}
+                </span>
+              </p>
+              <p className="text-[14px] text-[#a6ada3] leading-relaxed">
+                {briefingData.highway.detail}
+              </p>
+              {briefingData.highway.advice && (
+                <p className="mt-2 text-[14px] text-[#ffd709] font-bold">
+                  💡 {briefingData.highway.advice}
+                </p>
+              )}
+            </IntelCard>
+          )}
+
+          {/* Subsidies */}
+          {briefingData.subsidies && briefingData.subsidies.length > 0 && (
+            <IntelCard
+              icon={<Landmark className="w-5 h-5" />}
+              title="Subsidies & Schemes"
+              titleKas="سبسڈی تہٕ سکیمز"
+              color="purple"
+            >
+              <div className="space-y-3">
+                {briefingData.subsidies.map((sub, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#0a1009]/50 rounded-[12px] p-3 border border-[#434a41]/15"
+                  >
+                    <p className="text-[15px] font-bold text-[#f8fef3]">
+                      {sub.name}
+                    </p>
+                    {sub.deadline && (
+                      <p className="text-[13px] text-[#a78bfa] font-bold mt-1">
+                        <Clock className="w-3.5 h-3.5 inline mr-1" />
+                        Deadline: {sub.deadline}
+                      </p>
+                    )}
+                    <p className="text-[13px] text-[#a6ada3] mt-1">
+                      {sub.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </IntelCard>
+          )}
+
+          {/* Pest Warnings */}
+          {briefingData.pestWarnings &&
+            briefingData.pestWarnings.length > 0 && (
+              <IntelCard
+                icon={<Bug className="w-5 h-5" />}
+                title="Pest & Disease Alerts"
+                titleKas="کیڑے مکوڑے"
+                color="orange"
+              >
+                <div className="space-y-3">
+                  {briefingData.pestWarnings.map((pw, i) => (
+                    <div
+                      key={i}
+                      className="bg-[#0a1009]/50 rounded-[12px] p-3 border border-[#434a41]/15"
+                    >
+                      <p className="text-[15px] font-bold text-[#f8fef3]">
+                        {pw.crop} — {pw.issue}
+                      </p>
+                      <p className="text-[13px] text-[#f97316] font-bold mt-1">
+                        ⚡ {pw.action}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </IntelCard>
+            )}
+
+          {/* Market Vibe */}
+          {briefingData.marketVibe && (
+            <IntelCard
+              icon={<Heart className="w-5 h-5" />}
+              title="Market Sentiment"
+              titleKas="بازار کا مزاج"
+              color="green"
+            >
+              <p className="text-[15px] text-[#f8fef3] leading-relaxed">
+                {briefingData.marketVibe}
+              </p>
+            </IntelCard>
+          )}
+
+          {/* Active Alerts */}
+          {criticalAlerts.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[14px] font-extrabold text-[#ff7351] uppercase tracking-wide flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Active Alerts
+              </p>
+              {criticalAlerts.map((alert) => {
+                const config =
+                  ALERT_CONFIG[alert.category] || ALERT_CONFIG.weather;
+                const Icon = config.Icon;
+                return (
+                  <div
+                    key={alert._id}
+                    className={`rounded-[16px] p-4 border ${config.bg}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${config.color}`} />
+                      <div>
+                        <p className={`text-[15px] font-bold ${config.color}`}>
+                          {alert.title}
+                        </p>
+                        <p className="text-[14px] text-[#a6ada3] mt-1 leading-relaxed">
+                          {alert.body}
+                        </p>
+                        {alert.bodyKashmiri && (
+                          <p
+                            dir="rtl"
+                            className="text-[14px] text-[#f8fef3]/70 mt-1 font-nastaliq"
+                          >
+                            {alert.bodyKashmiri}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Intel Card (reusable wrapper)
+   ──────────────────────────────────────────── */
+
+function IntelCard({
+  icon,
+  title,
+  titleKas,
+  color,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  titleKas: string;
+  color: "red" | "yellow" | "green" | "purple" | "orange" | "blue";
+  children: React.ReactNode;
+}) {
+  const colorMap = {
+    red: {
+      border: "border-[#ff7351]/20",
+      icon: "text-[#ff7351]",
+      bg: "bg-[#ff7351]/5",
+    },
+    yellow: {
+      border: "border-[#ffd709]/20",
+      icon: "text-[#ffd709]",
+      bg: "bg-[#ffd709]/5",
+    },
+    green: {
+      border: "border-[#8eff71]/20",
+      icon: "text-[#8eff71]",
+      bg: "bg-[#8eff71]/5",
+    },
+    purple: {
+      border: "border-[#a78bfa]/20",
+      icon: "text-[#a78bfa]",
+      bg: "bg-[#a78bfa]/5",
+    },
+    orange: {
+      border: "border-[#f97316]/20",
+      icon: "text-[#f97316]",
+      bg: "bg-[#f97316]/5",
+    },
+    blue: {
+      border: "border-[#60a5fa]/20",
+      icon: "text-[#60a5fa]",
+      bg: "bg-[#60a5fa]/5",
+    },
+  };
+
+  const c = colorMap[color];
+
+  return (
+    <div
+      className={`rounded-[20px] border ${c.border} ${c.bg} p-5 shadow-sm`}
+    >
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className={c.icon}>{icon}</span>
+        <span className="text-[14px] font-extrabold text-[#f8fef3] uppercase tracking-wider">
+          {title}
+        </span>
+        <span className="text-[13px] font-bold text-[#a6ada3]">
+          · <Kas className="text-[13px]">{titleKas}</Kas>
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Mini Result Card (chat bubble)
    ──────────────────────────────────────────── */
 
 function MiniResultCard({ data }: { data: PriceData }) {
   const directionConfig = {
     up: {
       Icon: TrendingUp,
-      bg: "bg-success-light",
-      text: "text-success",
+      bg: "bg-[#b6fbc3]/10",
+      text: "text-[#b6fbc3]",
       label: "↑",
     },
     down: {
       Icon: TrendingDown,
-      bg: "bg-danger-light",
-      text: "text-danger",
+      bg: "bg-[#ff7351]/10",
+      text: "text-[#ff7351]",
       label: "↓",
     },
     stable: {
       Icon: Minus,
-      bg: "bg-gray-100",
-      text: "text-muted",
+      bg: "bg-[#ffd709]/10",
+      text: "text-[#ffd709]",
       label: "—",
     },
   };
@@ -637,85 +1302,136 @@ function MiniResultCard({ data }: { data: PriceData }) {
 
   const confBg =
     data.confidence === "high"
-      ? "bg-success-light text-success"
-      : "bg-amber-50 text-amber-600";
+      ? "bg-[#8eff71]/10 text-[#8eff71] border border-[#8eff71]/20"
+      : "bg-[#ffd709]/10 text-[#ffd709] border border-[#ffd709]/20";
 
   return (
-    <div className="bg-card border border-card-border rounded-2xl rounded-bl-md overflow-hidden shadow-sm">
-      {/* Header row */}
-      <div className="p-4 pb-3">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[32px] leading-none">
+    <div className="bg-[#141b14] border border-[#434a41]/20 rounded-[24px] rounded-bl-[8px] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+      {/* Header */}
+      <div className="p-5 pb-4 bg-gradient-to-b from-[#192219] to-[#141b14] relative">
+        <div className="absolute inset-0 bg-[#8eff71]/5 opacity-0 hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="flex flex-wrap items-center gap-4 mb-4 relative z-10">
+          <div className="w-14 h-14 rounded-[16px] bg-[#0a1009] border border-[#434a41]/30 flex items-center justify-center text-[32px] shadow-inner">
             {getCommodityEmoji(data.commodity)}
-          </span>
+          </div>
           <div className="flex-1 min-w-0">
             {data.commodityKashmiri && (
-              <p className="text-[18px] font-bold text-foreground leading-tight">
+              <p className="text-[22px] font-extrabold text-[#f8fef3] leading-tight mb-1">
                 <Kas>{data.commodityKashmiri}</Kas>
               </p>
             )}
-            <p className="text-[16px] font-semibold text-foreground/70">
+            <p className="text-[14px] font-bold text-[#a6ada3] uppercase tracking-wider">
               {data.commodityLocal || data.commodity}
             </p>
           </div>
           <div
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] font-bold ${dir.bg} ${dir.text}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[14px] font-bold ${dir.bg} ${dir.text}`}
           >
-            <DirIcon className="w-4 h-4" strokeWidth={2.5} />
+            <DirIcon className="w-4 h-4" strokeWidth={3} />
             {dir.label} {Math.abs(data.priceChange).toFixed(1)}%
           </div>
         </div>
 
-        {/* Price */}
-        <p className="text-[36px] font-extrabold leading-none text-foreground tracking-tight">
-          {formatPrice(data.currentPrice)}
-        </p>
-        <p className="text-[13px] text-muted mt-1 font-medium">
-          {data.unit || "per quintal"}
-        </p>
+        <div className="flex items-baseline gap-2 mt-2 relative z-10">
+          <p className="text-[42px] font-black leading-none text-[#8eff71] tracking-tight">
+            {formatPrice(data.currentPrice)}
+          </p>
+          <p className="text-[15px] text-[#a6ada3] font-bold uppercase tracking-wider">
+            / {data.unit || "Quintal"}
+          </p>
+        </div>
       </div>
 
-      {/* Summary */}
-      <div className="px-4 pb-4 space-y-2">
+      {/* Summary + Highway */}
+      <div className="px-5 pb-5 space-y-3 mt-1 relative z-10">
         {data.summaryKashmiri && (
           <p
             dir="rtl"
-            className="text-[16px] leading-relaxed text-foreground/80 font-nastaliq"
+            className="text-[17px] leading-relaxed text-[#f8fef3]/90 font-nastaliq"
           >
             {data.summaryKashmiri}
           </p>
         )}
-        <p className="text-[14px] leading-relaxed text-muted">
+        <p className="text-[15px] leading-relaxed text-[#a6ada3] font-medium">
           {data.summaryLocal || data.summary}
         </p>
 
+        {/* Highway Status in price card */}
+        {data.highway && data.highway.status !== "unknown" && (
+          <div
+            className={`rounded-[16px] p-4 mt-3 flex items-start gap-3 border ${
+              data.highway.status === "closed"
+                ? "bg-[#ff7351]/8 border-[#ff7351]/25"
+                : data.highway.status === "restricted"
+                  ? "bg-[#ffd709]/8 border-[#ffd709]/25"
+                  : "bg-[#8eff71]/5 border-[#8eff71]/20"
+            }`}
+          >
+            <Truck
+              className={`w-5 h-5 shrink-0 mt-0.5 ${
+                data.highway.status === "closed"
+                  ? "text-[#ff7351]"
+                  : data.highway.status === "restricted"
+                    ? "text-[#ffd709]"
+                    : "text-[#8eff71]"
+              }`}
+            />
+            <div>
+              <p
+                className={`text-[14px] font-extrabold ${
+                  data.highway.status === "closed"
+                    ? "text-[#ff7351]"
+                    : data.highway.status === "restricted"
+                      ? "text-[#ffd709]"
+                      : "text-[#8eff71]"
+                }`}
+              >
+                NH44: {data.highway.status.toUpperCase()}
+              </p>
+              <p className="text-[13px] text-[#a6ada3] mt-0.5">
+                {data.highway.advice}
+              </p>
+              {data.highwayKashmiri && (
+                <p
+                  dir="rtl"
+                  className="text-[13px] text-[#f8fef3]/60 font-nastaliq mt-1"
+                >
+                  {data.highwayKashmiri}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {data.additionalInfo && (
-          <div className="bg-accent rounded-xl p-3 mt-2">
-            <p className="text-[13px] text-foreground/70 font-medium leading-relaxed">
-              💡 {data.additionalInfo}
+          <div className="bg-[#1f281f] border border-[#434a41]/20 rounded-[16px] p-4 mt-4 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#8eff71]/50 group-hover:bg-[#8eff71] transition-colors" />
+            <p className="text-[14px] text-[#8eff71] font-bold leading-relaxed flex items-start gap-3">
+              <span className="text-[18px]">💡</span>
+              <span>{data.additionalInfo}</span>
             </p>
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-1.5 text-[12px] text-muted">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{data.market}</span>
+        <div className="flex items-center justify-between pt-5 mt-4 border-t border-[#434a41]/20">
+          <div className="flex items-center gap-2 text-[13px] font-bold text-[#a6ada3]">
+            <MapPin className="w-4 h-4 text-[#ffd709]" />
+            <span className="line-clamp-1">{data.market}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-[12px] text-muted">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#a6ada3]">
               <Clock className="w-3.5 h-3.5" />
               <span>{data.lastUpdated || "Today"}</span>
             </div>
             <div
-              className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full ${confBg}`}
+              className={`flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1.5 rounded-[8px] uppercase tracking-wide ${confBg}`}
             >
-              <Shield className="w-3 h-3" />
+              <Shield className="w-3.5 h-3.5" strokeWidth={2.5} />
               {data.confidence === "high" ? (
-                <Kas className="text-[10px]">بھروسہٕ مَند</Kas>
+                <Kas className="text-[11px] leading-none">بھروسہٕ مَند</Kas>
               ) : (
-                <Kas className="text-[10px]">اندازَن</Kas>
+                <Kas className="text-[11px] leading-none">اندازَن</Kas>
               )}
             </div>
           </div>

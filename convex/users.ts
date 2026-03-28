@@ -36,6 +36,8 @@ export const store = mutation({
       name: identity.name,
       email: identity.email,
       imageUrl: identity.pictureUrl,
+      location: "Srinagar",
+      crops: ["Apple", "Walnut", "Saffron"],
     });
   },
 });
@@ -52,5 +54,32 @@ export const current = query({
         q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .unique();
+  },
+});
+
+export const updatePreferences = mutation({
+  args: {
+    location: v.optional(v.string()),
+    crops: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    const updates: Record<string, unknown> = {};
+    if (args.location !== undefined) updates.location = args.location;
+    if (args.crops !== undefined) updates.crops = args.crops;
+
+    await ctx.db.patch(user._id, updates);
+    return user._id;
   },
 });

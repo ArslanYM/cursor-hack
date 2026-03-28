@@ -10,6 +10,9 @@
 
 import type * as farmerActions from "../farmerActions.js";
 import type * as farmerQuery from "../farmerQuery.js";
+import type * as smartContext from "../smartContext.js";
+import type * as smartContextMutations from "../smartContextMutations.js";
+import type * as smartContextQueries from "../smartContextQueries.js";
 import type * as users from "../users.js";
 
 import type {
@@ -21,6 +24,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   farmerActions: typeof farmerActions;
   farmerQuery: typeof farmerQuery;
+  smartContext: typeof smartContext;
+  smartContextMutations: typeof smartContextMutations;
+  smartContextQueries: typeof smartContextQueries;
   users: typeof users;
 }>;
 

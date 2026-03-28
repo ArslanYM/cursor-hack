@@ -7,6 +7,8 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
+    location: v.optional(v.string()),
+    crops: v.optional(v.array(v.string())),
   }).index("by_token", ["tokenIdentifier"]),
 
   queries: defineTable({
@@ -26,5 +28,66 @@ export default defineSchema({
   })
     .index("by_user", ["tokenIdentifier"])
     .index("by_timestamp", ["timestamp"])
+    .index("by_user_and_timestamp", ["tokenIdentifier", "timestamp"]),
+
+  alerts: defineTable({
+    category: v.union(
+      v.literal("weather"),
+      v.literal("highway"),
+      v.literal("subsidy"),
+      v.literal("pest"),
+      v.literal("market")
+    ),
+    severity: v.union(
+      v.literal("critical"),
+      v.literal("warning"),
+      v.literal("info")
+    ),
+    title: v.string(),
+    titleLocal: v.optional(v.string()),
+    body: v.string(),
+    bodyLocal: v.optional(v.string()),
+    bodyKashmiri: v.optional(v.string()),
+    sourceUrl: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+    timestamp: v.number(),
+  })
+    .index("by_category", ["category"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_category_and_timestamp", ["category", "timestamp"]),
+
+  briefings: defineTable({
+    tokenIdentifier: v.string(),
+    location: v.string(),
+    crops: v.array(v.string()),
+    smartContext: v.string(),
+    voiceScript: v.string(),
+    alerts: v.array(
+      v.object({
+        category: v.string(),
+        severity: v.string(),
+        title: v.string(),
+        body: v.string(),
+      })
+    ),
+    highway: v.optional(
+      v.object({
+        status: v.string(),
+        detail: v.string(),
+        advice: v.string(),
+      })
+    ),
+    subsidies: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          deadline: v.optional(v.string()),
+          detail: v.string(),
+        })
+      )
+    ),
+    timestamp: v.number(),
+  })
+    .index("by_user", ["tokenIdentifier"])
     .index("by_user_and_timestamp", ["tokenIdentifier", "timestamp"]),
 });

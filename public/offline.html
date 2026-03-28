@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ks" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>KisanVoice — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a1009;
+      color: #f8fef3;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .icon { font-size: 64px; margin-bottom: 1.5rem; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 0.5rem; }
+    .kas { font-family: "Noto Nastaliq Urdu", serif; direction: rtl; }
+    .sub { font-size: 16px; color: #a6ada3; margin-top: 0.5rem; line-height: 1.6; }
+    .cached-info {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: #141b14;
+      border: 1px solid rgba(67,74,65,0.2);
+      border-radius: 20px;
+      max-width: 400px;
+      width: 100%;
+    }
+    .cached-info h2 { font-size: 16px; color: #8eff71; margin-bottom: 0.75rem; }
+    .cached-info p { font-size: 14px; color: #a6ada3; line-height: 1.5; }
+    .retry {
+      margin-top: 2rem;
+      padding: 16px 32px;
+      background: linear-gradient(to bottom, #8eff71, #2be800);
+      color: #050a05;
+      border: none;
+      border-radius: 16px;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .retry:active { transform: scale(0.95); }
+  </style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>No Connection</h1>
+  <p class="kas" style="font-size: 22px; margin-top: 0.5rem;">نیٚٹورٕک نٕہ چھُ — اِنٹرنیٹ نٕہ چھُ</p>
+  <p class="sub">
+    इंटरनेट कनेक्शन नहीं है<br/>
+    Your last known data is saved below
+  </p>
+  <div class="cached-info" id="cached-container" style="display:none">
+    <h2>📋 Last Known Briefing</h2>
+    <p id="cached-briefing"></p>
+  </div>
+  <button class="retry" onclick="location.reload()">
+    🔄 Retry Connection
+  </button>
+  <script>
+    if ("caches" in window) {
+      caches.open("kisanvoice-v2").then(function(cache) {
+        cache.match("/api/cached-briefing").then(function(response) {
+          if (response) {
+            response.json().then(function(data) {
+              if (data && data.morningBriefing) {
+                document.getElementById("cached-container").style.display = "block";
+                document.getElementById("cached-briefing").textContent = data.morningBriefing;
+              }
+            });
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
