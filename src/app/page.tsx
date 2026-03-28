@@ -1,13 +1,13 @@
 "use client";
 
 import { NavBar } from "@/components/landing/NavBar";
-import { HeroStory } from "@/components/landing/HeroStory";
-import { FarmerStories } from "@/components/landing/FarmerStories";
-import { ChallengesSection } from "@/components/landing/ChallengesSection";
-import { SolutionSection } from "@/components/landing/SolutionSection";
-import { ImpactSection } from "@/components/landing/ImpactSection";
-import { TestimonialSection } from "@/components/landing/TestimonialSection";
-import { CTASection } from "@/components/landing/CTASection";
+import { OpeningNarrative } from "@/components/landing/OpeningNarrative";
+import { FarmersAsHeroes } from "@/components/landing/FarmersAsHeroes";
+import { RealStruggles } from "@/components/landing/RealStruggles";
+import { PersonalJourneys } from "@/components/landing/PersonalJourneys";
+import { TheTransformation } from "@/components/landing/TheTransformation";
+import { CommunityStories } from "@/components/landing/CommunityStories";
+import { JoinTheMovement } from "@/components/landing/JoinTheMovement";
 import { Footer } from "@/components/landing/Footer";
 
 export default function LandingPage() {
@@ -15,13 +15,13 @@ export default function LandingPage() {
     <main className="min-h-screen bg-kv-bg text-kv-text flex flex-col">
       <NavBar />
       <div className="flex-1">
-        <HeroStory />
-        <FarmerStories />
-        <ChallengesSection />
-        <SolutionSection />
-        <ImpactSection />
-        <TestimonialSection />
-        <CTASection />
+        <OpeningNarrative />
+        <FarmersAsHeroes />
+        <RealStruggles />
+        <PersonalJourneys />
+        <TheTransformation />
+        <CommunityStories />
+        <JoinTheMovement />
       </div>
       <Footer />
     </main>
