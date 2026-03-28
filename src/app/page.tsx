@@ -580,7 +580,6 @@ export default function KisanVoice() {
           history={completedChats}
           isRecording={isRecording}
           isProcessing={isProcessing}
-          isPipelinePending={isPipelinePending}
           activeQueryData={activeQueryData}
           error={error}
           setError={setError}
@@ -681,18 +680,16 @@ export default function KisanVoice() {
    Alert Ticker (top of page)
    ──────────────────────────────────────────── */
 
-function AlertTicker({
-  alerts,
-}: {
-  alerts: Array<{
-    _id: string;
-    category: string;
-    severity: string;
-    title: string;
-    body: string;
-    bodyKashmiri?: string;
-  }>;
-}) {
+interface AlertDoc {
+  _id: unknown;
+  category: string;
+  severity: string;
+  title: string;
+  body: string;
+  bodyKashmiri?: string;
+}
+
+function AlertTicker({ alerts }: { alerts: AlertDoc[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -739,26 +736,26 @@ function AlertTicker({
    Chat Tab
    ──────────────────────────────────────────── */
 
+interface ChatDoc {
+  _id: unknown;
+  transcript?: string;
+  aiResponse?: string;
+  timestamp: number;
+}
+
 function ChatTab({
   history,
   isRecording,
   isProcessing,
-  isPipelinePending,
   activeQueryData,
   error,
   setError,
   firstName,
   chatEndRef,
 }: {
-  history: Array<{
-    _id: string;
-    transcript?: string;
-    aiResponse?: string;
-    timestamp: number;
-  }>;
+  history: ChatDoc[];
   isRecording: boolean;
   isProcessing: boolean;
-  isPipelinePending: boolean;
   activeQueryData: {
     status?: string;
     transcript?: string;
@@ -806,7 +803,7 @@ function ChatTab({
               /* skip */
             }
             return (
-              <div key={chat._id} className="flex flex-col gap-4">
+              <div key={String(chat._id)} className="flex flex-col gap-4">
                 {chat.transcript && (
                   <div className="flex justify-end">
                     <div className="bg-gradient-to-br from-[#192219] to-[#1f281f] text-[#f8fef3] border border-[#8eff71]/20 rounded-[20px] rounded-br-[4px] px-5 py-4 max-w-[85%] shadow-[0_4px_16px_rgba(142,255,113,0.05)]">
@@ -921,14 +918,7 @@ function IntelTab({
   showDetail: boolean;
   setShowDetail: (v: boolean) => void;
   onRefresh: () => void;
-  criticalAlerts: Array<{
-    _id: string;
-    category: string;
-    severity: string;
-    title: string;
-    body: string;
-    bodyKashmiri?: string;
-  }>;
+  criticalAlerts: AlertDoc[];
 }) {
   if (isBriefingLoading) {
     return (
@@ -1168,7 +1158,7 @@ function IntelTab({
                 const Icon = config.Icon;
                 return (
                   <div
-                    key={alert._id}
+                    key={String(alert._id)}
                     className={`rounded-[16px] p-4 border ${config.bg}`}
                   >
                     <div className="flex items-start gap-3">
