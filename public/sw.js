@@ -1,4 +1,4 @@
-const CACHE_NAME = "kisanvoice-v2";
+const CACHE_NAME = "kisanvoice-v3";
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = ["/", "/offline.html"];
@@ -52,11 +52,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets
-  if (
-    url.pathname.match(/\.(js|css|woff2?|png|jpg|svg|ico)$/) ||
-    url.pathname.startsWith("/_next/static/")
-  ) {
+  // Network-first for Next chunks — cache-first stale JS breaks the app after deploys / HMR.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for other static assets (images, fonts at root, etc.)
+  if (url.pathname.match(/\.(js|css|woff2?|png|jpg|svg|ico)$/)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>

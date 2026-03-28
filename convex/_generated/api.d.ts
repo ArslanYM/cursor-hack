@@ -10,6 +10,7 @@
 
 import type * as farmerActions from "../farmerActions.js";
 import type * as farmerQuery from "../farmerQuery.js";
+import type * as groqClient from "../groqClient.js";
 import type * as smartContext from "../smartContext.js";
 import type * as smartContextMutations from "../smartContextMutations.js";
 import type * as smartContextQueries from "../smartContextQueries.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   farmerActions: typeof farmerActions;
   farmerQuery: typeof farmerQuery;
+  groqClient: typeof groqClient;
   smartContext: typeof smartContext;
   smartContextMutations: typeof smartContextMutations;
   smartContextQueries: typeof smartContextQueries;

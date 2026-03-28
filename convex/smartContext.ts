@@ -3,6 +3,7 @@
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { groqChat } from "./groqClient";
 
 const API_TIMEOUT_MS = 20_000;
 
@@ -56,46 +57,60 @@ function formatExaResults(results: ExaResult[]): string {
   );
 }
 
-async function groqChat(
-  systemPrompt: string,
-  userPrompt: string,
-  jsonMode = true
-): Promise<string> {
-  const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
-
-  const res = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 2048,
-        ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
-      }),
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    }
-  );
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Groq LLM failed (${res.status}): ${body}`);
+/** When every Groq model is exhausted or errors, still return a usable briefing from Exa text. */
+function buildFallbackBriefing(
+  location: string,
+  crops: string[],
+  streams: {
+    news: { weather: ExaResult[]; general: ExaResult[] };
+    highway: ExaResult[];
+    subsidies: ExaResult[];
+    pest: ExaResult[];
+    sentiment: ExaResult[];
   }
+): Record<string, unknown> {
+  const newsText = formatExaResults([
+    ...streams.news.weather,
+    ...streams.news.general,
+  ]);
+  const highwayText = formatExaResults(streams.highway);
+  const subsidyText = formatExaResults(streams.subsidies);
+  const pestText = formatExaResults(streams.pest);
+  const marketText = formatExaResults(streams.sentiment);
 
-  const data: {
-    choices?: Array<{ message?: { content?: string } }>;
-  } = await res.json();
+  const morningBriefing = [
+    `Snapshot for ${location} (${crops.slice(0, 4).join(", ")}).`,
+    newsText.trim() ? `News & weather: ${newsText.slice(0, 900)}` : "",
+    highwayText.trim() ? `Roads: ${highwayText.slice(0, 500)}` : "",
+    subsidyText.trim() ? `Schemes: ${subsidyText.slice(0, 500)}` : "",
+    pestText.trim() ? `Crop health: ${pestText.slice(0, 500)}` : "",
+    marketText.trim() ? `Market: ${marketText.slice(0, 400)}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 3500);
 
-  return data.choices?.[0]?.message?.content || "";
+  return {
+    morningBriefing:
+      morningBriefing ||
+      `Briefing synthesis is temporarily unavailable (AI quota). Sources for ${location} were fetched but could not be summarized — try again later.`,
+    morningBriefingKashmiri: "",
+    morningBriefingHindi: "",
+    voiceScript: `Quick update for ${location}: please read the morning briefing on screen. Roads and weather change fast — confirm NH44 status locally if you plan to move produce.`,
+    alerts: [],
+    highway: {
+      status: "unknown",
+      detail:
+        highwayText.trim().slice(0, 400) ||
+        "Could not summarize highway status — check local traffic news.",
+      advice:
+        "If the highway is closed or slow, avoid harvesting perishables until transport is reliable.",
+    },
+    subsidies: [],
+    pestWarnings: [],
+    marketVibe: marketText.trim().slice(0, 280) || "",
+    _briefingSource: "exa_fallback",
+  };
 }
 
 /* ─── Individual data streams ─── */
@@ -236,7 +251,16 @@ ${formatExaResults(streams.pest)}
 --- MARKET SENTIMENT ---
 ${formatExaResults(streams.sentiment)}`;
 
-  const content = await groqChat(systemPrompt, userPrompt, true);
+  let content: string;
+  try {
+    content = await groqChat(systemPrompt, userPrompt, true);
+  } catch (e) {
+    console.error(
+      "[KV:Smart] Groq synthesis failed — using Exa-only fallback briefing",
+      e
+    );
+    return buildFallbackBriefing(location, crops, streams);
+  }
 
   try {
     return JSON.parse(content);
@@ -380,8 +404,12 @@ export const diagnosePest = action({
       1200
     );
 
-    const content = await groqChat(
-      `You are an agricultural pest/disease expert for Kashmir farmers. Given symptom descriptions and research results, diagnose the likely issue and give actionable treatment advice.
+    const researchBlock = formatExaResults(results);
+
+    let content: string;
+    try {
+      content = await groqChat(
+        `You are an agricultural pest/disease expert for Kashmir farmers. Given symptom descriptions and research results, diagnose the likely issue and give actionable treatment advice.
 
 Return valid JSON:
 {
@@ -397,9 +425,27 @@ Return valid JSON:
   "urgency": "immediate|soon|monitor",
   "voiceScript": "A warm 20-second script explaining the issue and what to do, as if talking to a neighbor"
 }`,
-      `Crop: ${crop}\nSymptoms described by farmer: "${args.symptoms}"\n\nResearch results:\n${formatExaResults(results)}`,
-      true
-    );
+        `Crop: ${crop}\nSymptoms described by farmer: "${args.symptoms}"\n\nResearch results:\n${researchBlock}`,
+        true
+      );
+    } catch (e) {
+      console.error("[KV:Pest] Groq failed — returning research excerpt only", e);
+      return {
+        diagnosis: "See research notes",
+        diagnosisLocal: "अनुसंधान देखें",
+        diagnosisKashmiri: "معلومات",
+        confidence: "low",
+        symptoms: [args.symptoms],
+        treatment: researchBlock.slice(0, 2000),
+        treatmentLocal: "",
+        treatmentKashmiri: "",
+        prevention: "",
+        urgency: "monitor",
+        voiceScript:
+          "AI summary is temporarily unavailable. Please read the research notes on screen and contact your local extension officer if needed.",
+        _briefingSource: "exa_fallback",
+      };
+    }
 
     try {
       return JSON.parse(content);
