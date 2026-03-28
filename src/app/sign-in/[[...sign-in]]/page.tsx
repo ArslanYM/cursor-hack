@@ -16,7 +16,7 @@ export default function SignInPage() {
         </p>
       </div>
       <SignIn
-        forceRedirectUrl="/"
+        forceRedirectUrl="/(authenticated)"
         appearance={{
           elements: {
             rootBox: "mx-auto",

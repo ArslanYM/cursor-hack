@@ -19,9 +19,9 @@ export function ConvexClientProvider({
 
   return (
     <ClerkProvider
-      afterSignOutUrl="/sign-in"
-      signInForceRedirectUrl="/"
-      signUpForceRedirectUrl="/"
+      afterSignOutUrl="/"
+      signInForceRedirectUrl="/(authenticated)"
+      signUpForceRedirectUrl="/(authenticated)"
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}

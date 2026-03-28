@@ -21,9 +21,10 @@ const notoNastaliq = Noto_Nastaliq_Urdu({
 });
 
 export const metadata: Metadata = {
-  title: "KisanVoice — تُہنٛد آواز، تُہنٛد بازار",
+  title: "KisanVoice — Your Voice, Your Market",
   description:
-    "Voice-first AI assistant for farmers in Kashmir. Ask for mandi prices in Kashmiri, Hindi, or Urdu.",
+    "Voice-first AI assistant empowering Kashmir's farmers with real-time mandi prices, weather forecasts, and crop intelligence in Kashmiri, Hindi, and Urdu.",
+  keywords: ["farming", "mandi prices", "agriculture", "Kashmir", "voice assistant", "AI"],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -31,6 +32,11 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   manifest: "/manifest.json",
+  openGraph: {
+    title: "KisanVoice — Your Voice, Your Market",
+    description: "Empower your farming with real-time market intelligence and AI insights",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
