@@ -70,6 +70,9 @@ export default defineSchema({
         severity: v.string(),
         title: v.string(),
         body: v.string(),
+        titleKashmiri: v.optional(v.string()),
+        bodyKashmiri: v.optional(v.string()),
+        bodyHindi: v.optional(v.string()),
       })
     ),
     highway: v.optional(

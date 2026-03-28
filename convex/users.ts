@@ -37,7 +37,7 @@ export const store = mutation({
       email: identity.email,
       imageUrl: identity.pictureUrl,
       location: "Srinagar",
-      crops: ["Apple", "Walnut", "Saffron"],
+      crops: ["Apple", "Walnut", "Saffron", "Rice", "Tomato", "Potato"],
     });
   },
 });

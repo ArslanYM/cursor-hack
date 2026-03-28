@@ -35,6 +35,15 @@ import {
   Sparkles,
   BookOpen,
 } from "lucide-react";
+import {
+  UI_STRINGS,
+  quickQueryChips,
+  DEFAULT_BRIEFING_LOCATION,
+  DEFAULT_BRIEFING_CROPS,
+  type AppLanguage,
+  type UiStrings,
+} from "./kisan-i18n";
+import { LanguageSelectScreen, FeatureGuideScreen } from "./kisan-onboarding";
 
 /* ────────────────────────────────────────────
    Helpers
@@ -83,6 +92,27 @@ function getCommodityEmoji(name: string): string {
   if (l.includes("cherry") || l.includes("gilas")) return "🍒";
   if (l.includes("maize") || l.includes("makka") || l.includes("corn"))
     return "🌽";
+  if (
+    l.includes("tomato") ||
+    l.includes("tamatar") ||
+    l.includes("ruwangan") ||
+    l.includes("روٲنٛگَن")
+  )
+    return "🍅";
+  if (
+    l.includes("potato") ||
+    l.includes("aloo") ||
+    l.includes("aalu") ||
+    l.includes("alū") ||
+    l.includes("oluv")
+  )
+    return "🥔";
+  if (l.includes("onion") || l.includes("pyaz") || l.includes("piaz"))
+    return "🧅";
+  if (l.includes("cauliflower") || l.includes("gobhi") || l.includes("gobi"))
+    return "🥦";
+  if (l.includes("brinjal") || l.includes("baingan") || l.includes("wangun"))
+    return "🍆";
   return "🌿";
 }
 
@@ -216,131 +246,6 @@ interface BriefingData {
   marketVibe?: string;
 }
 
-/* ────────────────────────────────────────────
-   Language & i18n
-   ──────────────────────────────────────────── */
-
-type AppLanguage = "kashmiri" | "hindi" | "english";
-
-const LANGUAGES: {
-  id: AppLanguage;
-  name: string;
-  nativeName: string;
-  script: string;
-  emoji: string;
-  greeting: string;
-  dir: "ltr" | "rtl";
-}[] = [
-  {
-    id: "kashmiri",
-    name: "Kashmiri",
-    nativeName: "کٲشُر",
-    script: "Nastaliq",
-    emoji: "🏔️",
-    greeting: "اسلام علیکم",
-    dir: "rtl",
-  },
-  {
-    id: "hindi",
-    name: "Hindi",
-    nativeName: "हिन्दी",
-    script: "Devanagari",
-    emoji: "🇮🇳",
-    greeting: "नमस्ते",
-    dir: "ltr",
-  },
-  {
-    id: "english",
-    name: "English",
-    nativeName: "English",
-    script: "Latin",
-    emoji: "🌐",
-    greeting: "Hello",
-    dir: "ltr",
-  },
-];
-
-const UI_STRINGS: Record<
-  AppLanguage,
-  {
-    welcomeTitle: string;
-    welcomeSubtitle: string;
-    chooseLanguage: string;
-    next: string;
-    getStarted: string;
-    featureGuideTitle: string;
-    featureGuideSubtitle: string;
-    feature1Title: string;
-    feature1Desc: string;
-    feature2Title: string;
-    feature2Desc: string;
-    feature3Title: string;
-    feature3Desc: string;
-    feature4Title: string;
-    feature4Desc: string;
-  }
-> = {
-  kashmiri: {
-    welcomeTitle: "کِسان وائس مٕنٛز خوش آمدید",
-    welcomeSubtitle: "پہلٕ زبان مُنتخب کرِو",
-    chooseLanguage: "زبان چُنِو",
-    next: "اگاد",
-    getStarted: "شروع کرِو",
-    featureGuideTitle: "تُہٕنٛد رہنُمایی",
-    featureGuideSubtitle: "یِم چیزٕ کَرٕ سَکِو تُہٕ",
-    feature1Title: "🎤 آواز سٕتھ پُچھِو",
-    feature1Desc: "بٹن دبایِو تہٕ بولِو — اپنہٕ زبانٕ مَنٛز منڈی نرخ پُچھِو",
-    feature2Title: "📊 صُبٲح کی بریفنگ",
-    feature2Desc: "موسم، سڑک، سبسڈی تہٕ بازار — ہَر صبٲح تازہ خبریٖں",
-    feature3Title: "🛣️ این ایچ ۴۴ سٹیٹس",
-    feature3Desc: "ہائیوے بند ہویٕ تٕ فصل نٕ کٹِو — ایپ خبردار کٔرٕ",
-    feature4Title: "🌾 ذہین مشورٕ",
-    feature4Desc: "کیڑے مکوڑے، سبسڈی ڈیڈلاین — سٮ۪ب خبریٖں اکٹھٕ",
-  },
-  hindi: {
-    welcomeTitle: "KisanVoice में आपका स्वागत है",
-    welcomeSubtitle: "पहले अपनी भाषा चुनें",
-    chooseLanguage: "भाषा चुनें",
-    next: "आगे",
-    getStarted: "शुरू करें",
-    featureGuideTitle: "आपकी गाइड",
-    featureGuideSubtitle: "आप ये सब कर सकते हैं",
-    feature1Title: "🎤 आवाज़ से पूछें",
-    feature1Desc: "बटन दबाएं और बोलें — अपनी भाषा में मंडी भाव पूछें",
-    feature2Title: "📊 सुबह की ब्रीफिंग",
-    feature2Desc: "मौसम, सड़क, सब्सिडी और बाजार — हर सुबह ताज़ा जानकारी",
-    feature3Title: "🛣️ NH44 स्टेटस",
-    feature3Desc: "हाईवे बंद हो तो फसल न काटें — ऐप आपको बताएगा",
-    feature4Title: "🌾 स्मार्ट सलाह",
-    feature4Desc: "कीड़े-मकोड़े, सब्सिडी डेडलाइन — सब जानकारी एक जगह",
-  },
-  english: {
-    welcomeTitle: "Welcome to KisanVoice",
-    welcomeSubtitle: "First, choose your language",
-    chooseLanguage: "Choose Language",
-    next: "Next",
-    getStarted: "Get Started",
-    featureGuideTitle: "Your Quick Guide",
-    featureGuideSubtitle: "Here's what you can do",
-    feature1Title: "🎤 Ask with Voice",
-    feature1Desc:
-      "Tap the mic and speak — ask mandi prices in your own language",
-    feature2Title: "📊 Morning Briefing",
-    feature2Desc:
-      "Weather, highway, subsidies, and market — fresh intel every morning",
-    feature3Title: "🛣️ NH44 Status",
-    feature3Desc:
-      "Highway closed? The app warns you not to harvest perishables",
-    feature4Title: "🌾 Smart Advice",
-    feature4Desc:
-      "Pest alerts, subsidy deadlines — all intelligence in one place",
-  },
-};
-
-/* ────────────────────────────────────────────
-   Main Page
-   ──────────────────────────────────────────── */
-
 export default function KisanVoice() {
   const { user, isLoaded } = useUser();
   const storeUser = useMutation(api.users.store);
@@ -402,8 +307,10 @@ export default function KisanVoice() {
   const [error, setError] = useState<string | null>(null);
   const [briefingData, setBriefingData] = useState<BriefingData | null>(null);
   const [isBriefingLoading, setIsBriefingLoading] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
   const [showBriefingDetail, setShowBriefingDetail] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "intel">("chat");
+  const intelAutoFetchDoneRef = useRef(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -438,6 +345,7 @@ export default function KisanVoice() {
       try {
         const parsed = JSON.parse(latestBriefing.smartContext);
         setBriefingData(parsed);
+        setBriefingError(null);
         // Cache for offline access
         if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
@@ -453,14 +361,12 @@ export default function KisanVoice() {
 
   useEffect(() => {
     if (activeQueryData?.status === "error") {
-      setError(
-        activeQueryData.errorMessage || "کچھ غلط ہوٗو — कुछ गलत हुआ"
-      );
+      setError(activeQueryData.errorMessage || t.genericQueryError);
     }
     if (activeQueryData?.status === "complete") {
       setIsPipelinePending(false);
     }
-  }, [activeQueryData?.status, activeQueryData?.errorMessage]);
+  }, [activeQueryData?.status, activeQueryData?.errorMessage, t.genericQueryError]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -468,14 +374,18 @@ export default function KisanVoice() {
 
   /* ── Fetch smart context / briefing ── */
   const fetchBriefing = useCallback(async () => {
+    setBriefingError(null);
     setIsBriefingLoading(true);
     try {
-      const result = await getSmartContext({
-        location: currentUser?.location || "Srinagar",
-        crops: currentUser?.crops || ["Apple", "Walnut", "Saffron"],
-      });
+      const location = currentUser?.location ?? DEFAULT_BRIEFING_LOCATION;
+      const crops =
+        currentUser?.crops && currentUser.crops.length > 0
+          ? currentUser.crops
+          : [...DEFAULT_BRIEFING_CROPS];
+      const result = await getSmartContext({ location, crops });
       const data = result as unknown as BriefingData;
       setBriefingData(data);
+      setBriefingError(null);
       if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: "CACHE_BRIEFING",
@@ -484,10 +394,38 @@ export default function KisanVoice() {
       }
     } catch (err) {
       console.error("Briefing fetch failed:", err);
+      const message =
+        err instanceof Error ? err.message : t.processingFailed;
+      setBriefingError(message);
     } finally {
       setIsBriefingLoading(false);
     }
-  }, [getSmartContext, currentUser?.location, currentUser?.crops]);
+  }, [
+    getSmartContext,
+    currentUser?.location,
+    currentUser?.crops,
+    t.processingFailed,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== "intel") {
+      intelAutoFetchDoneRef.current = false;
+      return;
+    }
+    if (latestBriefing === undefined) return;
+    if (briefingData) return;
+    if (isBriefingLoading) return;
+    if (latestBriefing?.smartContext) return;
+    if (intelAutoFetchDoneRef.current) return;
+    intelAutoFetchDoneRef.current = true;
+    void fetchBriefing();
+  }, [
+    activeTab,
+    latestBriefing,
+    briefingData,
+    isBriefingLoading,
+    fetchBriefing,
+  ]);
 
   /* ── VAD cleanup ── */
   const cleanupAudioAnalysis = useCallback(() => {
@@ -551,9 +489,7 @@ export default function KisanVoice() {
         setIsPipelinePending(true);
         try {
           if (chunksRef.current.length === 0) {
-            setError(
-              "ریکارڈنگ مُختَسَر — रिकॉर्डिंग बहुत छोटी थी, फिर से बोलें"
-            );
+            setError(t.recordingTooShort);
             return;
           }
 
@@ -570,7 +506,7 @@ export default function KisanVoice() {
           });
         } catch (err) {
           setError(
-            err instanceof Error ? err.message : "Processing failed"
+            err instanceof Error ? err.message : t.processingFailed
           );
         } finally {
           setIsPipelinePending(false);
@@ -645,9 +581,16 @@ export default function KisanVoice() {
 
       rafIdRef.current = requestAnimationFrame(checkAudio);
     } catch {
-      setError("مایکروفون چالو کرِو — माइक्रोफोन की अनुमति दें");
+      setError(t.microphonePermission);
     }
-  }, [createQuery, processQuery, stopRecording]);
+  }, [
+    createQuery,
+    processQuery,
+    stopRecording,
+    t.recordingTooShort,
+    t.processingFailed,
+    t.microphonePermission,
+  ]);
 
   const handleMicPress = useCallback(() => {
     if (isRecording) {
@@ -730,7 +673,7 @@ export default function KisanVoice() {
               onClick={fetchBriefing}
               disabled={isBriefingLoading}
               className="w-10 h-10 rounded-full bg-[#141b14] border border-[#434a41]/30 flex items-center justify-center cursor-pointer hover:bg-[#192219] transition-colors active:scale-95"
-              aria-label="Get morning briefing"
+              aria-label={t.ariaMorningBriefing}
             >
               {isBriefingLoading ? (
                 <Loader2 className="w-5 h-5 text-[#8eff71] animate-spin" />
@@ -761,7 +704,16 @@ export default function KisanVoice() {
             }`}
           >
             <Mic className="w-4 h-4 inline-block mr-2 -mt-0.5" />
-            <Kas className="text-[14px]">بولِو</Kas> · Ask
+            <span
+              dir={selectedLanguage === "kashmiri" ? "rtl" : "ltr"}
+              className={
+                selectedLanguage === "kashmiri"
+                  ? "font-nastaliq text-[14px] inline-block"
+                  : ""
+              }
+            >
+              {t.tabAsk}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("intel")}
@@ -772,7 +724,16 @@ export default function KisanVoice() {
             }`}
           >
             <Zap className="w-4 h-4 inline-block mr-2 -mt-0.5" />
-            <Kas className="text-[14px]">خبریٖں</Kas> · Intel
+            <span
+              dir={selectedLanguage === "kashmiri" ? "rtl" : "ltr"}
+              className={
+                selectedLanguage === "kashmiri"
+                  ? "font-nastaliq text-[14px] inline-block"
+                  : ""
+              }
+            >
+              {t.tabIntel}
+            </span>
             {criticalAlerts.length > 0 && activeTab !== "intel" && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff7351] rounded-full text-[11px] font-black flex items-center justify-center text-white">
                 {criticalAlerts.length}
@@ -785,6 +746,8 @@ export default function KisanVoice() {
       {/* ── Content Area ── */}
       {activeTab === "chat" ? (
         <ChatTab
+          lang={selectedLanguage}
+          t={t}
           history={completedChats}
           isRecording={isRecording}
           isProcessing={isProcessing}
@@ -796,8 +759,12 @@ export default function KisanVoice() {
         />
       ) : (
         <IntelTab
+          lang={selectedLanguage}
+          t={t}
           briefingData={briefingData}
           isBriefingLoading={isBriefingLoading}
+          briefingError={briefingError}
+          setBriefingError={setBriefingError}
           showDetail={showBriefingDetail}
           setShowDetail={setShowBriefingDetail}
           onRefresh={fetchBriefing}
@@ -811,22 +778,28 @@ export default function KisanVoice() {
         !isRecording &&
         !isProcessing && (
           <div className="px-5 pb-6 max-w-lg mx-auto w-full">
-            <p className="text-[13px] text-[#a6ada3] text-center mb-4 font-bold tracking-[0.1em] uppercase">
-              <Kas>یِتھ بولِو:</Kas> · Quick Queries
+            <p
+              className="text-[13px] text-[#a6ada3] text-center mb-4 font-bold tracking-[0.1em] uppercase"
+              dir={selectedLanguage === "kashmiri" ? "rtl" : "ltr"}
+            >
+              {t.quickQueriesTitle}
             </p>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { emoji: "🍎", label: "سیب" },
-                { emoji: "🥜", label: "اخروٹ" },
-                { emoji: "🌸", label: "کونگ" },
-              ].map((s) => (
+              {quickQueryChips(t).map((s) => (
                 <div
-                  key={s.label}
+                  key={s.key}
                   className="bg-[#141b14] hover:bg-[#192219] transition-colors cursor-pointer border border-[#434a41]/20 rounded-[16px] px-3 py-4 flex flex-col items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_16px_rgba(142,255,113,0.05)] hover:-translate-y-0.5"
                 >
                   <span className="text-[28px] drop-shadow-md">{s.emoji}</span>
-                  <span className="text-[16px] font-bold text-[#f8fef3]/90">
-                    <Kas>{s.label}</Kas>
+                  <span
+                    className={`text-[16px] font-bold text-[#f8fef3]/90 ${selectedLanguage === "kashmiri" ? "font-nastaliq" : ""}`}
+                    dir={selectedLanguage === "kashmiri" ? "rtl" : "ltr"}
+                  >
+                    {selectedLanguage === "kashmiri" ? (
+                      <Kas>{s.label}</Kas>
+                    ) : (
+                      s.label
+                    )}
                   </span>
                 </div>
               ))}
@@ -847,11 +820,7 @@ export default function KisanVoice() {
           <button
             onClick={handleMicPress}
             disabled={isProcessing}
-            aria-label={
-              isRecording
-                ? "रिकॉर्डिंग रोकें — Tap to stop"
-                : "बोलना शुरू करें — Tap to speak"
-            }
+            aria-label={isRecording ? t.tapToStop : t.tapToSpeakAria}
             className={[
               "relative w-24 h-24 rounded-full flex items-center justify-center overflow-hidden",
               "transition-all duration-300 active:scale-95 cursor-pointer",
@@ -874,298 +843,19 @@ export default function KisanVoice() {
           </button>
 
           {!isRecording && !isProcessing && (
-            <p className="text-[14px] text-[#a6ada3] font-bold w-20 text-center leading-tight">
-              <Kas>بٹن دَبٲوِتھ بولِو</Kas>
+            <p
+              className={`text-[14px] text-[#a6ada3] font-bold w-24 text-center leading-tight ${selectedLanguage === "kashmiri" ? "font-nastaliq" : ""}`}
+              dir={selectedLanguage === "kashmiri" ? "rtl" : "ltr"}
+            >
+              {selectedLanguage === "kashmiri" ? (
+                <Kas>{t.tapToSpeak}</Kas>
+              ) : (
+                t.tapToSpeak
+              )}
             </p>
           )}
         </div>
       </div>
-    </main>
-  );
-}
-
-/* ────────────────────────────────────────────
-   Language Selection Screen
-   ──────────────────────────────────────────── */
-
-function LanguageSelectScreen({
-  selectedLanguage,
-  onSelect,
-  onNext,
-  t,
-}: {
-  selectedLanguage: AppLanguage;
-  onSelect: (lang: AppLanguage) => void;
-  onNext: () => void;
-  t: (typeof UI_STRINGS)[AppLanguage];
-}) {
-  const activeLang = LANGUAGES.find((l) => l.id === selectedLanguage)!;
-
-  return (
-    <main className="min-h-screen bg-[#0a1009] flex flex-col items-center justify-center px-5 py-10 font-sans text-[#f8fef3] relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#8eff71]/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#ffd709]/5 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
-        <div className="w-10 h-1.5 rounded-full bg-[#434a41]/40" />
-      </div>
-
-      {/* Logo */}
-      <div className="flex items-center gap-3 mb-3">
-        <Wheat className="w-10 h-10 text-[#8eff71]" strokeWidth={2} />
-        <span className="text-[28px] font-extrabold tracking-tight">
-          KisanVoice
-        </span>
-      </div>
-
-      <p className="text-[16px] text-[#a6ada3] mb-2 font-medium">
-        {t.welcomeSubtitle}
-      </p>
-
-      {/* Animated greeting */}
-      <div className="h-16 flex items-center justify-center mb-8">
-        <p
-          key={activeLang.id}
-          dir={activeLang.dir}
-          className="text-[32px] font-extrabold text-[#8eff71] animate-[fadeInUp_0.4s_ease-out]"
-          style={{
-            fontFamily:
-              activeLang.dir === "rtl"
-                ? "var(--font-noto-nastaliq)"
-                : "inherit",
-          }}
-        >
-          {activeLang.greeting} 👋
-        </p>
-      </div>
-
-      {/* Language picker label */}
-      <div className="flex items-center gap-2.5 mb-5">
-        <Globe className="w-5 h-5 text-[#8eff71]" />
-        <span className="text-[14px] font-extrabold text-[#8eff71] uppercase tracking-[0.15em]">
-          {t.chooseLanguage}
-        </span>
-      </div>
-
-      {/* Language cards */}
-      <div className="w-full max-w-sm space-y-3 mb-10">
-        {LANGUAGES.map((lang) => {
-          const isActive = lang.id === selectedLanguage;
-          return (
-            <button
-              key={lang.id}
-              onClick={() => onSelect(lang.id)}
-              className={[
-                "w-full flex items-center gap-4 px-5 py-5 rounded-[20px] border transition-all duration-300 cursor-pointer",
-                "active:scale-[0.98]",
-                isActive
-                  ? "bg-[#8eff71]/10 border-[#8eff71]/40 shadow-[0_0_32px_rgba(142,255,113,0.1)]"
-                  : "bg-[#141b14] border-[#434a41]/20 hover:bg-[#192219] hover:border-[#434a41]/40",
-              ].join(" ")}
-            >
-              <span className="text-[32px]">{lang.emoji}</span>
-              <div className="flex-1 text-left">
-                <p
-                  className={`text-[18px] font-extrabold ${isActive ? "text-[#8eff71]" : "text-[#f8fef3]"}`}
-                >
-                  {lang.nativeName}
-                </p>
-                <p className="text-[14px] text-[#a6ada3] font-medium">
-                  {lang.name} · {lang.script}
-                </p>
-              </div>
-              <div
-                className={[
-                  "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all",
-                  isActive
-                    ? "border-[#8eff71] bg-[#8eff71]"
-                    : "border-[#434a41]/40",
-                ].join(" ")}
-              >
-                {isActive && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                  >
-                    <path
-                      d="M3 7L6 10L11 4"
-                      stroke="#050a05"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Next button */}
-      <button
-        onClick={onNext}
-        className="w-full max-w-sm py-5 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[18px] font-extrabold text-[18px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_48px_rgba(142,255,113,0.5)] cursor-pointer active:scale-[0.97] transition-all flex items-center justify-center gap-3"
-      >
-        {t.next}
-        <ArrowRight className="w-5 h-5" />
-      </button>
-    </main>
-  );
-}
-
-/* ────────────────────────────────────────────
-   Feature Guide Screen
-   ──────────────────────────────────────────── */
-
-function FeatureGuideScreen({
-  language,
-  onComplete,
-  t,
-}: {
-  language: AppLanguage;
-  onComplete: () => void;
-  t: (typeof UI_STRINGS)[AppLanguage];
-}) {
-  const features = [
-    {
-      title: t.feature1Title,
-      desc: t.feature1Desc,
-      icon: <Mic className="w-7 h-7" />,
-      color: "from-[#8eff71]/15 to-transparent border-[#8eff71]/20",
-      iconColor: "text-[#8eff71]",
-    },
-    {
-      title: t.feature2Title,
-      desc: t.feature2Desc,
-      icon: <Zap className="w-7 h-7" />,
-      color: "from-[#ffd709]/15 to-transparent border-[#ffd709]/20",
-      iconColor: "text-[#ffd709]",
-    },
-    {
-      title: t.feature3Title,
-      desc: t.feature3Desc,
-      icon: <Truck className="w-7 h-7" />,
-      color: "from-[#60a5fa]/15 to-transparent border-[#60a5fa]/20",
-      iconColor: "text-[#60a5fa]",
-    },
-    {
-      title: t.feature4Title,
-      desc: t.feature4Desc,
-      icon: <Sparkles className="w-7 h-7" />,
-      color: "from-[#a78bfa]/15 to-transparent border-[#a78bfa]/20",
-      iconColor: "text-[#a78bfa]",
-    },
-  ];
-
-  return (
-    <main className="min-h-screen bg-[#0a1009] flex flex-col items-center px-5 py-10 font-sans text-[#f8fef3] relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#8eff71]/4 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
-        <div className="w-10 h-1.5 rounded-full bg-[#8eff71]" />
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <BookOpen className="w-8 h-8 text-[#8eff71]" />
-        <h1
-          className="text-[26px] font-extrabold tracking-tight"
-          dir={language === "kashmiri" ? "rtl" : "ltr"}
-          style={{
-            fontFamily:
-              language === "kashmiri"
-                ? "var(--font-noto-nastaliq)"
-                : "inherit",
-          }}
-        >
-          {t.featureGuideTitle}
-        </h1>
-      </div>
-      <p
-        className="text-[16px] text-[#a6ada3] mb-8 font-medium text-center max-w-xs"
-        dir={language === "kashmiri" ? "rtl" : "ltr"}
-        style={{
-          fontFamily:
-            language === "kashmiri"
-              ? "var(--font-noto-nastaliq)"
-              : "inherit",
-        }}
-      >
-        {t.featureGuideSubtitle}
-      </p>
-
-      {/* Feature cards */}
-      <div className="w-full max-w-sm space-y-4 mb-10">
-        {features.map((f, i) => (
-          <div
-            key={i}
-            className={`bg-gradient-to-br ${f.color} rounded-[20px] border p-5 flex items-start gap-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md`}
-            style={{
-              animationDelay: `${i * 100}ms`,
-              animation: "fadeInUp 0.5s ease-out both",
-            }}
-          >
-            <div
-              className={`w-12 h-12 rounded-[14px] bg-[#0a1009]/60 flex items-center justify-center shrink-0 ${f.iconColor}`}
-            >
-              {f.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-[17px] font-extrabold text-[#f8fef3] mb-1 leading-snug"
-                dir={language === "kashmiri" ? "rtl" : "ltr"}
-                style={{
-                  fontFamily:
-                    language === "kashmiri"
-                      ? "var(--font-noto-nastaliq)"
-                      : "inherit",
-                }}
-              >
-                {f.title}
-              </p>
-              <p
-                className="text-[14px] text-[#a6ada3] leading-relaxed"
-                dir={language === "kashmiri" ? "rtl" : "ltr"}
-                style={{
-                  fontFamily:
-                    language === "kashmiri"
-                      ? "var(--font-noto-nastaliq)"
-                      : "inherit",
-                }}
-              >
-                {f.desc}
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-[#434a41] shrink-0 mt-1" />
-          </div>
-        ))}
-      </div>
-
-      {/* Get Started button */}
-      <button
-        onClick={onComplete}
-        className="w-full max-w-sm py-5 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[18px] font-extrabold text-[18px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_48px_rgba(142,255,113,0.5)] cursor-pointer active:scale-[0.97] transition-all flex items-center justify-center gap-3"
-        dir={language === "kashmiri" ? "rtl" : "ltr"}
-        style={{
-          fontFamily:
-            language === "kashmiri"
-              ? "var(--font-noto-nastaliq)"
-              : "inherit",
-        }}
-      >
-        <Sparkles className="w-5 h-5" />
-        {t.getStarted}
-      </button>
-
     </main>
   );
 }
@@ -1238,6 +928,8 @@ interface ChatDoc {
 }
 
 function ChatTab({
+  lang,
+  t,
   history,
   isRecording,
   isProcessing,
@@ -1247,6 +939,8 @@ function ChatTab({
   firstName,
   chatEndRef,
 }: {
+  lang: AppLanguage;
+  t: UiStrings;
   history: ChatDoc[];
   isRecording: boolean;
   isProcessing: boolean;
@@ -1260,26 +954,48 @@ function ChatTab({
   firstName: string;
   chatEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const welcomeTitle = t.mainWelcomeTitle.replace("{name}", firstName);
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full flex flex-col gap-6">
       {!history.length && !isRecording && !isProcessing && (
         <div className="bg-[#141b14] rounded-[24px] p-6 shadow-[0_8px_32px_rgba(142,255,113,0.03)] border border-[#434a41]/10">
-          <p className="text-[26px] font-extrabold text-[#f8fef3] mb-2 tracking-tight">
-            <Kas>اسلام علیکم</Kas> {firstName}! 👋
+          <p
+            className={`text-[26px] font-extrabold text-[#f8fef3] mb-2 tracking-tight ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? <Kas>{welcomeTitle}</Kas> : welcomeTitle}
           </p>
-          <p className="text-[18px] text-[#a6ada3] leading-relaxed">
-            <Kas>بٹن دبایِو تہٕ بولِو — منڈی نرخ پُچھِو</Kas>
-          </p>
-          <p className="text-[15px] text-[#a6ada3]/70 mt-2 font-medium">
-            बटन दबाएं और बोलें — मंडी भाव पूछें
+          <p
+            className={`text-[18px] text-[#a6ada3] leading-relaxed ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.mainWelcomeSubtitle}</Kas>
+            ) : (
+              t.mainWelcomeSubtitle
+            )}
           </p>
           <div className="mt-4 pt-4 border-t border-[#434a41]/15">
-            <p className="text-[14px] text-[#8eff71]/80 font-bold flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              <Kas>خبریٖں ٹیب دبایِو صُبٲح کی بریفنگ کٲتھ</Kas>
+            <p
+              className={`text-[14px] text-[#8eff71]/80 font-bold flex items-center gap-2 ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+              dir={lang === "kashmiri" ? "rtl" : "ltr"}
+            >
+              <Zap className="w-4 h-4 shrink-0" />
+              {lang === "kashmiri" ? (
+                <Kas>{t.intelHintTitle}</Kas>
+              ) : (
+                <span>{t.intelHintTitle}</span>
+              )}
             </p>
-            <p className="text-[13px] text-[#a6ada3]/60 mt-1">
-              Tap Intel tab for your morning briefing
+            <p
+              className={`text-[13px] text-[#a6ada3]/60 mt-1 ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+              dir={lang === "kashmiri" ? "rtl" : "ltr"}
+            >
+              {lang === "kashmiri" ? (
+                <Kas>{t.intelHintSubtitle}</Kas>
+              ) : (
+                t.intelHintSubtitle
+              )}
             </p>
           </div>
         </div>
@@ -1314,7 +1030,7 @@ function ChatTab({
                 {parsed && (
                   <div className="flex justify-start">
                     <div className="max-w-[95%]">
-                      <MiniResultCard data={parsed} />
+                      <MiniResultCard data={parsed} lang={lang} t={t} />
                     </div>
                   </div>
                 )}
@@ -1331,11 +1047,15 @@ function ChatTab({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff7351] opacity-75" />
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ff7351]" />
               </span>
-              <span className="text-[17px] font-bold text-[#ff7351]">
-                <Kas>بۄزان چھِو...</Kas>
-              </span>
-              <span className="text-[14px] text-[#ff7351]/80 font-medium ml-2">
-                सुन रहे हैं
+              <span
+                className={`text-[17px] font-bold text-[#ff7351] ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+                dir={lang === "kashmiri" ? "rtl" : "ltr"}
+              >
+                {lang === "kashmiri" ? (
+                  <Kas>{t.listening}</Kas>
+                ) : (
+                  t.listening
+                )}
               </span>
             </div>
           </div>
@@ -1357,19 +1077,23 @@ function ChatTab({
           <div className="bg-[#141b14] border border-[#434a41]/20 rounded-[20px] rounded-bl-[4px] px-6 py-5 shadow-sm">
             <div className="flex items-center gap-4">
               <Loader2 className="w-6 h-6 animate-spin text-[#8eff71]" />
-              <span className="text-[18px] font-bold text-[#f8fef3]">
-                <Kas>
-                  {activeQueryData?.status === "transcribing"
-                    ? "سمجان چھِو..."
-                    : "نرخ لبان چھِو..."}
-                </Kas>
+              <span
+                className={`text-[18px] font-bold text-[#f8fef3] ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+                dir={lang === "kashmiri" ? "rtl" : "ltr"}
+              >
+                {lang === "kashmiri" ? (
+                  <Kas>
+                    {activeQueryData?.status === "transcribing"
+                      ? t.understanding
+                      : t.searchingPrices}
+                  </Kas>
+                ) : activeQueryData?.status === "transcribing" ? (
+                  t.understanding
+                ) : (
+                  t.searchingPrices
+                )}
               </span>
             </div>
-            <p className="text-[14px] text-[#a6ada3] mt-2 font-medium ml-10">
-              {activeQueryData?.status === "transcribing"
-                ? "समझ रहे हैं..."
-                : "कीमतें खोज रहे हैं..."}
-            </p>
           </div>
         </div>
       )}
@@ -1384,7 +1108,7 @@ function ChatTab({
               onClick={() => setError(null)}
               className="mt-3 text-[14px] text-[#ff7351] underline font-bold cursor-pointer hover:text-[#ff7351]/80 transition-colors"
             >
-              Dismiss
+              {t.dismiss}
             </button>
           </div>
         </div>
@@ -1400,42 +1124,70 @@ function ChatTab({
    ──────────────────────────────────────────── */
 
 function IntelTab({
+  lang,
+  t,
   briefingData,
   isBriefingLoading,
+  briefingError,
+  setBriefingError,
   showDetail,
   setShowDetail,
   onRefresh,
   criticalAlerts,
 }: {
+  lang: AppLanguage;
+  t: UiStrings;
   briefingData: BriefingData | null;
   isBriefingLoading: boolean;
+  briefingError: string | null;
+  setBriefingError: (v: string | null) => void;
   showDetail: boolean;
   setShowDetail: (v: boolean) => void;
   onRefresh: () => void;
   criticalAlerts: AlertDoc[];
 }) {
+  const sourcePills = [
+    t.intelSourceWeather,
+    t.intelSourceHighway,
+    t.intelSourceSubsidy,
+    t.intelSourcePest,
+    t.intelSourceMarket,
+  ];
+
   if (isBriefingLoading) {
     return (
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-[#8eff71] animate-spin mx-auto mb-4" />
-          <p className="text-[20px] font-bold text-[#f8fef3]">
-            <Kas>معلومات جمع کران چھِو...</Kas>
+          <p
+            className={`text-[20px] font-bold text-[#f8fef3] ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.intelLoadingTitle}</Kas>
+            ) : (
+              t.intelLoadingTitle
+            )}
           </p>
-          <p className="text-[15px] text-[#a6ada3] mt-2 font-medium">
-            Gathering intelligence from 5 sources...
+          <p
+            className={`text-[15px] text-[#a6ada3] mt-2 font-medium ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.intelLoadingSubtitle}</Kas>
+            ) : (
+              t.intelLoadingSubtitle
+            )}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {["Weather", "Highway", "Subsidies", "Pests", "Market"].map(
-              (s) => (
-                <span
-                  key={s}
-                  className="px-3 py-1.5 bg-[#141b14] border border-[#434a41]/20 rounded-full text-[12px] font-bold text-[#a6ada3] animate-pulse"
-                >
-                  {s}
-                </span>
-              )
-            )}
+            {sourcePills.map((s) => (
+              <span
+                key={s}
+                className="px-3 py-1.5 bg-[#141b14] border border-[#434a41]/20 rounded-full text-[12px] font-bold text-[#a6ada3] animate-pulse"
+              >
+                {s}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -1447,21 +1199,61 @@ function IntelTab({
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="text-center max-w-sm">
           <Zap className="w-16 h-16 text-[#ffd709]/40 mx-auto mb-4" />
-          <p className="text-[22px] font-extrabold text-[#f8fef3] mb-2">
-            <Kas>صبٲح کی بریفنگ</Kas>
+          <p
+            className={`text-[22px] font-extrabold text-[#f8fef3] mb-2 ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.intelEmptyTitle}</Kas>
+            ) : (
+              t.intelEmptyTitle
+            )}
           </p>
-          <p className="text-[16px] text-[#a6ada3] mb-6 leading-relaxed">
-            <Kas>بٹن دَبٲوِتھ ہَر صُبح خبریٖں حاصل کرِو</Kas>
+          <p
+            className={`text-[16px] text-[#a6ada3] mb-4 leading-relaxed ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.intelEmptyBody}</Kas>
+            ) : (
+              t.intelEmptyBody
+            )}
           </p>
-          <p className="text-[14px] text-[#a6ada3]/70 mb-6">
-            Tap to get weather, highway, subsidies, pest alerts & market vibe
+          <p
+            className={`text-[14px] text-[#a6ada3]/70 mb-6 ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+            dir={lang === "kashmiri" ? "rtl" : "ltr"}
+          >
+            {lang === "kashmiri" ? (
+              <Kas>{t.intelEmptyHint}</Kas>
+            ) : (
+              t.intelEmptyHint
+            )}
           </p>
+          {briefingError && (
+            <div className="mb-6 rounded-[16px] border border-[#ff7351]/30 bg-[#ff7351]/10 px-4 py-3 text-left">
+              <p className="text-[14px] font-semibold text-[#ff7351] break-words">
+                {briefingError}
+              </p>
+              <button
+                type="button"
+                onClick={() => setBriefingError(null)}
+                className="mt-2 text-[13px] text-[#ff7351] underline font-bold"
+              >
+                {t.dismiss}
+              </button>
+            </div>
+          )}
           <button
             onClick={onRefresh}
             className="px-8 py-4 bg-gradient-to-b from-[#8eff71] to-[#2be800] text-[#050a05] rounded-[16px] font-extrabold text-[17px] shadow-[0_8px_32px_rgba(142,255,113,0.3)] hover:shadow-[0_8px_40px_rgba(142,255,113,0.5)] cursor-pointer active:scale-95 transition-all"
           >
             <Zap className="w-5 h-5 inline-block mr-2 -mt-0.5" />
-            <Kas>بریفنگ حاصل کرِو</Kas> · Get Briefing
+            <span
+              className={lang === "kashmiri" ? "font-nastaliq" : ""}
+              dir={lang === "kashmiri" ? "rtl" : "ltr"}
+            >
+              {lang === "kashmiri" ? <Kas>{t.getBriefing}</Kas> : t.getBriefing}
+            </span>
           </button>
         </div>
       </div>
@@ -1470,41 +1262,66 @@ function IntelTab({
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 max-w-lg mx-auto w-full space-y-5">
+      {briefingError && (
+        <div className="rounded-[16px] border border-[#ff7351]/30 bg-[#ff7351]/10 px-4 py-3">
+          <p className="text-[14px] font-semibold text-[#ff7351] break-words">
+            {briefingError}
+          </p>
+          <button
+            type="button"
+            onClick={() => setBriefingError(null)}
+            className="mt-2 text-[13px] text-[#ff7351] underline font-bold"
+          >
+            {t.dismiss}
+          </button>
+        </div>
+      )}
       {/* Morning Briefing Card */}
       <div className="bg-gradient-to-b from-[#192219] to-[#141b14] rounded-[24px] p-6 border border-[#8eff71]/15 shadow-[0_8px_32px_rgba(142,255,113,0.05)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <Volume2 className="w-6 h-6 text-[#8eff71]" />
-            <span className="text-[16px] font-extrabold text-[#8eff71] uppercase tracking-wide">
-              Morning Briefing
+            <span
+              className={`text-[16px] font-extrabold text-[#8eff71] uppercase tracking-wide ${lang === "kashmiri" ? "font-nastaliq" : ""}`}
+              dir={lang === "kashmiri" ? "rtl" : "ltr"}
+            >
+              {lang === "kashmiri" ? (
+                <Kas>{t.morningBriefingLabel}</Kas>
+              ) : (
+                t.morningBriefingLabel
+              )}
             </span>
           </div>
           <button
             onClick={onRefresh}
             className="w-9 h-9 rounded-full bg-[#0a1009] border border-[#434a41]/30 flex items-center justify-center cursor-pointer hover:bg-[#192219] transition-colors active:scale-95"
-            aria-label="Refresh briefing"
+            aria-label={t.ariaRefreshBriefing}
           >
             <RefreshCw className="w-4 h-4 text-[#a6ada3]" />
           </button>
         </div>
 
-        {briefingData.morningBriefingKashmiri && (
-          <p
-            dir="rtl"
-            className="text-[19px] leading-[1.8] text-[#f8fef3] font-nastaliq mb-3"
-          >
-            {briefingData.morningBriefingKashmiri}
-          </p>
-        )}
+        {lang === "kashmiri" &&
+          (briefingData.morningBriefingKashmiri || briefingData.morningBriefing) && (
+            <p
+              dir="rtl"
+              className="text-[19px] leading-[1.8] text-[#f8fef3] font-nastaliq mb-3"
+            >
+              {briefingData.morningBriefingKashmiri ||
+                briefingData.morningBriefing}
+            </p>
+          )}
 
-        {briefingData.morningBriefingHindi && (
-          <p className="text-[15px] leading-relaxed text-[#a6ada3] mb-3">
-            {briefingData.morningBriefingHindi}
-          </p>
-        )}
+        {lang === "hindi" &&
+          (briefingData.morningBriefingHindi || briefingData.morningBriefing) && (
+            <p className="text-[16px] leading-relaxed text-[#f8fef3] mb-3">
+              {briefingData.morningBriefingHindi ||
+                briefingData.morningBriefing}
+            </p>
+          )}
 
-        {briefingData.morningBriefing && (
-          <p className="text-[14px] leading-relaxed text-[#a6ada3]/70">
+        {lang === "english" && briefingData.morningBriefing && (
+          <p className="text-[16px] leading-relaxed text-[#f8fef3] mb-3">
             {briefingData.morningBriefing}
           </p>
         )}
@@ -1515,11 +1332,11 @@ function IntelTab({
         >
           {showDetail ? (
             <>
-              <ChevronUp className="w-4 h-4" /> Less detail
+              <ChevronUp className="w-4 h-4" /> {t.lessDetail}
             </>
           ) : (
             <>
-              <ChevronDown className="w-4 h-4" /> More detail
+              <ChevronDown className="w-4 h-4" /> {t.moreDetail}
             </>
           )}
         </button>
@@ -1532,8 +1349,9 @@ function IntelTab({
           {briefingData.highway && (
             <IntelCard
               icon={<Truck className="w-5 h-5" />}
-              title="NH44 Highway"
-              titleKas="این ایچ ۴۴ ہائیوے"
+              title={t.nh44Title}
+              titleKas={t.nh44TitleKas}
+              lang={lang}
               color={
                 briefingData.highway.status === "closed"
                   ? "red"
@@ -1543,7 +1361,7 @@ function IntelTab({
               }
             >
               <p className="text-[15px] font-bold text-[#f8fef3] mb-1">
-                Status:{" "}
+                {t.nh44StatusPrefix}{" "}
                 <span
                   className={
                     briefingData.highway.status === "closed"
@@ -1571,8 +1389,9 @@ function IntelTab({
           {briefingData.subsidies && briefingData.subsidies.length > 0 && (
             <IntelCard
               icon={<Landmark className="w-5 h-5" />}
-              title="Subsidies & Schemes"
-              titleKas="سبسڈی تہٕ سکیمز"
+              title={t.subsidiesTitle}
+              titleKas={t.subsidiesTitleKas}
+              lang={lang}
               color="purple"
             >
               <div className="space-y-3">
@@ -1587,7 +1406,7 @@ function IntelTab({
                     {sub.deadline && (
                       <p className="text-[13px] text-[#a78bfa] font-bold mt-1">
                         <Clock className="w-3.5 h-3.5 inline mr-1" />
-                        Deadline: {sub.deadline}
+                        {t.deadlineLabel}: {sub.deadline}
                       </p>
                     )}
                     <p className="text-[13px] text-[#a6ada3] mt-1">
@@ -1604,8 +1423,9 @@ function IntelTab({
             briefingData.pestWarnings.length > 0 && (
               <IntelCard
                 icon={<Bug className="w-5 h-5" />}
-                title="Pest & Disease Alerts"
-                titleKas="کیڑے مکوڑے"
+                title={t.pestTitle}
+                titleKas={t.pestTitleKas}
+                lang={lang}
                 color="orange"
               >
                 <div className="space-y-3">
@@ -1630,8 +1450,9 @@ function IntelTab({
           {briefingData.marketVibe && (
             <IntelCard
               icon={<Heart className="w-5 h-5" />}
-              title="Market Sentiment"
-              titleKas="بازار کا مزاج"
+              title={t.marketSentimentTitle}
+              titleKas={t.marketSentimentTitleKas}
+              lang={lang}
               color="green"
             >
               <p className="text-[15px] text-[#f8fef3] leading-relaxed">
@@ -1644,7 +1465,7 @@ function IntelTab({
           {criticalAlerts.length > 0 && (
             <div className="space-y-3">
               <p className="text-[14px] font-extrabold text-[#ff7351] uppercase tracking-wide flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Active Alerts
+                <AlertTriangle className="w-4 h-4" /> {t.activeAlerts}
               </p>
               {criticalAlerts.map((alert) => {
                 const config =
@@ -1661,15 +1482,16 @@ function IntelTab({
                         <p className={`text-[15px] font-bold ${config.color}`}>
                           {alert.title}
                         </p>
-                        <p className="text-[14px] text-[#a6ada3] mt-1 leading-relaxed">
-                          {alert.body}
-                        </p>
-                        {alert.bodyKashmiri && (
+                        {lang === "kashmiri" ? (
                           <p
                             dir="rtl"
-                            className="text-[14px] text-[#f8fef3]/70 mt-1 font-nastaliq"
+                            className="text-[14px] text-[#a6ada3] mt-1 leading-relaxed font-nastaliq"
                           >
-                            {alert.bodyKashmiri}
+                            {alert.bodyKashmiri || alert.body}
+                          </p>
+                        ) : (
+                          <p className="text-[14px] text-[#a6ada3] mt-1 leading-relaxed">
+                            {alert.body}
                           </p>
                         )}
                       </div>
@@ -1693,12 +1515,14 @@ function IntelCard({
   icon,
   title,
   titleKas,
+  lang,
   color,
   children,
 }: {
   icon: React.ReactNode;
   title: string;
   titleKas: string;
+  lang: AppLanguage;
   color: "red" | "yellow" | "green" | "purple" | "orange" | "blue";
   children: React.ReactNode;
 }) {
@@ -1743,12 +1567,18 @@ function IntelCard({
     >
       <div className="flex items-center gap-2.5 mb-3">
         <span className={c.icon}>{icon}</span>
-        <span className="text-[14px] font-extrabold text-[#f8fef3] uppercase tracking-wider">
-          {title}
-        </span>
-        <span className="text-[13px] font-bold text-[#a6ada3]">
-          · <Kas className="text-[13px]">{titleKas}</Kas>
-        </span>
+        {lang === "kashmiri" ? (
+          <span
+            dir="rtl"
+            className="text-[14px] font-extrabold text-[#f8fef3] uppercase tracking-wider font-nastaliq"
+          >
+            <Kas>{titleKas}</Kas>
+          </span>
+        ) : (
+          <span className="text-[14px] font-extrabold text-[#f8fef3] uppercase tracking-wider">
+            {title}
+          </span>
+        )}
       </div>
       {children}
     </div>
@@ -1759,7 +1589,15 @@ function IntelCard({
    Mini Result Card (chat bubble)
    ──────────────────────────────────────────── */
 
-function MiniResultCard({ data }: { data: PriceData }) {
+function MiniResultCard({
+  data,
+  lang,
+  t,
+}: {
+  data: PriceData;
+  lang: AppLanguage;
+  t: UiStrings;
+}) {
   const directionConfig = {
     up: {
       Icon: TrendingUp,
@@ -1787,7 +1625,37 @@ function MiniResultCard({ data }: { data: PriceData }) {
   const confBg =
     data.confidence === "high"
       ? "bg-[#8eff71]/10 text-[#8eff71] border border-[#8eff71]/20"
-      : "bg-[#ffd709]/10 text-[#ffd709] border border-[#ffd709]/20";
+      : data.confidence === "medium"
+        ? "bg-[#ffd709]/10 text-[#ffd709] border border-[#ffd709]/20"
+        : "bg-[#a6ada3]/10 text-[#a6ada3] border border-[#434a41]/20";
+
+  const commodityPrimary =
+    lang === "kashmiri"
+      ? data.commodityKashmiri || data.commodity
+      : lang === "hindi"
+        ? data.commodityLocal || data.commodity
+        : data.commodity;
+
+  const summaryPrimary =
+    lang === "kashmiri"
+      ? data.summaryKashmiri || data.summary
+      : lang === "hindi"
+        ? data.summaryLocal || data.summary
+        : data.summary;
+
+  const unitDisplay =
+    !data.unit || /quintal/i.test(data.unit)
+      ? t.unitPerQuintal
+      : data.unit;
+
+  const confidenceText =
+    data.confidence === "high"
+      ? t.confidenceHigh
+      : data.confidence === "medium"
+        ? t.confidenceMedium
+        : t.confidenceLow;
+
+  const showTip = lang === "english" && data.additionalInfo;
 
   return (
     <div className="bg-[#141b14] border border-[#434a41]/20 rounded-[24px] rounded-bl-[8px] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
@@ -1799,14 +1667,18 @@ function MiniResultCard({ data }: { data: PriceData }) {
             {getCommodityEmoji(data.commodity)}
           </div>
           <div className="flex-1 min-w-0">
-            {data.commodityKashmiri && (
+            {lang === "kashmiri" ? (
+              <p
+                dir="rtl"
+                className="text-[22px] font-extrabold text-[#f8fef3] leading-tight mb-1 font-nastaliq"
+              >
+                <Kas>{commodityPrimary}</Kas>
+              </p>
+            ) : (
               <p className="text-[22px] font-extrabold text-[#f8fef3] leading-tight mb-1">
-                <Kas>{data.commodityKashmiri}</Kas>
+                {commodityPrimary}
               </p>
             )}
-            <p className="text-[14px] font-bold text-[#a6ada3] uppercase tracking-wider">
-              {data.commodityLocal || data.commodity}
-            </p>
           </div>
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[14px] font-bold ${dir.bg} ${dir.text}`}
@@ -1821,24 +1693,25 @@ function MiniResultCard({ data }: { data: PriceData }) {
             {formatPrice(data.currentPrice)}
           </p>
           <p className="text-[15px] text-[#a6ada3] font-bold uppercase tracking-wider">
-            / {data.unit || "Quintal"}
+            / {unitDisplay}
           </p>
         </div>
       </div>
 
       {/* Summary + Highway */}
       <div className="px-5 pb-5 space-y-3 mt-1 relative z-10">
-        {data.summaryKashmiri && (
+        {lang === "kashmiri" ? (
           <p
             dir="rtl"
             className="text-[17px] leading-relaxed text-[#f8fef3]/90 font-nastaliq"
           >
-            {data.summaryKashmiri}
+            <Kas>{summaryPrimary}</Kas>
+          </p>
+        ) : (
+          <p className="text-[15px] leading-relaxed text-[#a6ada3] font-medium">
+            {summaryPrimary}
           </p>
         )}
-        <p className="text-[15px] leading-relaxed text-[#a6ada3] font-medium">
-          {data.summaryLocal || data.summary}
-        </p>
 
         {/* Highway Status in price card */}
         {data.highway && data.highway.status !== "unknown" && (
@@ -1860,34 +1733,43 @@ function MiniResultCard({ data }: { data: PriceData }) {
                     : "text-[#8eff71]"
               }`}
             />
-            <div>
-              <p
-                className={`text-[14px] font-extrabold ${
-                  data.highway.status === "closed"
-                    ? "text-[#ff7351]"
-                    : data.highway.status === "restricted"
-                      ? "text-[#ffd709]"
-                      : "text-[#8eff71]"
-                }`}
-              >
-                NH44: {data.highway.status.toUpperCase()}
-              </p>
-              <p className="text-[13px] text-[#a6ada3] mt-0.5">
-                {data.highway.advice}
-              </p>
-              {data.highwayKashmiri && (
+            <div className="min-w-0">
+              {lang === "kashmiri" && data.highwayKashmiri ? (
                 <p
                   dir="rtl"
-                  className="text-[13px] text-[#f8fef3]/60 font-nastaliq mt-1"
+                  className="text-[14px] font-extrabold text-[#f8fef3] font-nastaliq leading-snug"
                 >
-                  {data.highwayKashmiri}
+                  <Kas>{data.highwayKashmiri}</Kas>
                 </p>
+              ) : (
+                <>
+                  <p
+                    className={`text-[14px] font-extrabold ${
+                      data.highway.status === "closed"
+                        ? "text-[#ff7351]"
+                        : data.highway.status === "restricted"
+                          ? "text-[#ffd709]"
+                          : "text-[#8eff71]"
+                    }`}
+                  >
+                    {t.nh44StatusPrefix}{" "}
+                    {data.highway.status.toUpperCase()}
+                  </p>
+                  <p className="text-[13px] text-[#a6ada3] mt-1 leading-relaxed">
+                    {data.highway.detail}
+                  </p>
+                  {data.highway.advice && (
+                    <p className="text-[13px] text-[#ffd709] font-bold mt-1">
+                      {data.highway.advice}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
         )}
 
-        {data.additionalInfo && (
+        {showTip && (
           <div className="bg-[#1f281f] border border-[#434a41]/20 rounded-[16px] p-4 mt-4 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-[#8eff71]/50 group-hover:bg-[#8eff71] transition-colors" />
             <p className="text-[14px] text-[#8eff71] font-bold leading-relaxed flex items-start gap-3">
@@ -1912,10 +1794,14 @@ function MiniResultCard({ data }: { data: PriceData }) {
               className={`flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1.5 rounded-[8px] uppercase tracking-wide ${confBg}`}
             >
               <Shield className="w-3.5 h-3.5" strokeWidth={2.5} />
-              {data.confidence === "high" ? (
-                <Kas className="text-[11px] leading-none">بھروسہٕ مَند</Kas>
+              {lang === "kashmiri" ? (
+                <Kas className="text-[11px] leading-none normal-case">
+                  {confidenceText}
+                </Kas>
               ) : (
-                <Kas className="text-[11px] leading-none">اندازَن</Kas>
+                <span className="text-[11px] leading-none normal-case">
+                  {confidenceText}
+                </span>
               )}
             </div>
           </div>
