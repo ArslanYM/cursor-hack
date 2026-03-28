@@ -30,10 +30,10 @@ export function CTASection() {
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-kv-text mb-4 tracking-tight">
-            Ready to Transform Your Farming?
+            Your Voice. Your Power. Your Future.
           </h2>
-          <p className="text-lg text-kv-text-muted mb-8 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of farmers across Kashmir who are already using KisanVoice to make smarter farming decisions and increase their income.
+          <p className="text-lg text-kv-text/80 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Thousands of farmers across Kashmir, Punjab, Haryana, and beyond are already using KisanVoice to reclaim their power from middlemen. It&apos;s time for your story to be next.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
