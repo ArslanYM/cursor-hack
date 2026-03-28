@@ -3,6 +3,7 @@
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { apifySupplementMandiContext } from "./apifyClient";
 import { groqChat } from "./groqClient";
 
 const API_TIMEOUT_MS = 25_000;
@@ -170,14 +171,33 @@ async function searchMandiPrices(transcript: string): Promise<string> {
     results?: Array<{ title?: string; text?: string; url?: string }>;
   } = await response.json();
 
-  return (
-    data.results
-      ?.map(
+  const rows = data.results ?? [];
+  const exaBlock =
+    rows
+      .map(
         (r) =>
           `Source: ${r.title || "Unknown"}\nURL: ${r.url || ""}\n${r.text || ""}`
       )
-      .join("\n\n---\n\n") || "No search results found for this query."
-  );
+      .join("\n\n---\n\n") || "No search results found for this query.";
+
+  const urls = rows
+    .map((r) => r.url)
+    .filter((u): u is string => typeof u === "string" && u.length > 0);
+
+  let apifyBlock = "";
+  if (urls.length > 0 && process.env.APIFY_API_TOKEN) {
+    console.log("[KV] Step 2b: Optional Apify deep extract for mandi page...");
+    apifyBlock = await apifySupplementMandiContext(urls);
+    if (apifyBlock) {
+      console.log(`[KV] Apify extract added (${apifyBlock.length} chars)`);
+    }
+  } else if (urls.length > 0 && !process.env.APIFY_API_TOKEN) {
+    console.log("[KV] APIFY_API_TOKEN not set — skipping Apify deep extract");
+  }
+
+  if (!apifyBlock) return exaBlock;
+
+  return `${exaBlock}\n\n${apifyBlock}`;
 }
 
 async function searchHighwayStatus(): Promise<string> {

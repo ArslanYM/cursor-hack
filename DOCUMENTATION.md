@@ -64,10 +64,12 @@ We use three powerful AI partners to make KisanVoice work. Here is how they func
     * When the farmer asks for the price of Saffron, Exa searches the web specifically for reliable agricultural news, mandi prices, and government portals. 
     * We also use Exa to secretly run background searches for the **Morning Briefing**—checking 5 different streams at once: Weather, NH44 Highway Status, Government Subsidies, Pest Warnings, and Market Sentiment over the whole internet.
 
-### 3. Apify (The "Data Harvester" - *Supplemental Use*)
-* **What it does:** Web scraping platform that can extract data from specific websites that don't have easy APIs.
+### 3. Apify (The "Data Harvester" — *optional, wired for voice Ask*)
+* **What it does:** Runs [Website Content Crawler](https://apify.com/apify/website-content-crawler) on Apify’s cloud to pull full page text/markdown from a single URL.
 * **How we use it:**
-    * While Exa handles broad internet searches, Apify can be commanded to perform targeted extractions (scraping) from specific government Mandi price boards or local news sites that hide their data behind complex tables, turning that website data into clean text for our AI brain (Groq) to read.
+    * After **Exa** returns search hits, the backend picks the best URL (preferring `gov.in`, Agmarknet, mandi, e-NAM, etc.) and calls Apify’s **sync** API to extract a deeper page snapshot (tables, body text).
+    * That block is appended to the Groq prompt so **Groq** can read richer context than Exa’s short snippets alone.
+    * If `APIFY_API_TOKEN` is not set in Convex, the pipeline skips Apify and uses only Exa (no user-facing error).
 
 ---
 
@@ -75,6 +77,6 @@ We use three powerful AI partners to make KisanVoice work. Here is how they func
 
 1. **Speak:** The farmer taps the microphone and asks, *"What is the apple rate in Sopore?"*
 2. **Listen (Groq):** Groq turns that voice recording into the text: "What is the apple rate in Sopore?"
-3. **Fetch (Exa & Apify):** The app tells Exa to search the web for "Apple Sopore Mandi rate today". At the same time, it searches for "NH44 Highway status".
+3. **Fetch (Exa, then optional Apify, plus highway):** The app runs Exa for mandi prices, optionally deep-crawls one result URL with Apify, and runs a separate Exa search for NH44 highway status in parallel with the mandi step.
 4. **Think & Translate (Groq):** Exa returns a bunch of messy articles. Groq reads them all, finds the exact price, notes that the highway is open, and translates the summary into Kashmiri.
 5. **Show:** The frontend displays the beautiful `MiniResultCard` on the screen for the farmer to see.
