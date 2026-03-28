@@ -17,7 +17,18 @@ https://github.com/user-attachments/assets/dd3e3bdc-c4d7-4c4b-9cfc-0d8d3fdc8244
 | App | [Next.js 16](https://nextjs.org) (App Router), React 19, Tailwind CSS 4 |
 | Backend | [Convex](https://convex.dev) (queries, mutations, real-time) |
 | Auth | [Clerk](https://clerk.com) |
-| Voice / search / reasoning | Configured in Convex actions (see repo env & Convex dashboard) |
+| Voice / LLM | [Groq](https://groq.com) (Whisper transcription + Llama JSON) |
+| Web search | [Exa](https://exa.ai) (neural search snippets for Ask + Intel streams) |
+| Deep page extract (optional) | [Apify](https://apify.com) [Website Content Crawler](https://apify.com/apify/website-content-crawler) — after Exa returns URLs, Convex may sync-crawl **one** prioritized page (e.g. `gov.in` / mandi links) so Groq sees fuller text than snippets alone. **Intel** still uses Exa-only. |
+
+### Voice Ask pipeline (high level)
+
+1. Audio → Groq Whisper → transcript  
+2. **Exa** searches for mandi / price context; **Exa** also powers NH44 lookup in parallel  
+3. If `APIFY_API_TOKEN` is set in Convex, **Apify** runs on the best candidate URL from Exa results  
+4. **Groq** structures the combined text into the price card JSON  
+
+If Apify is disabled or fails, the flow falls back to Exa + Groq only.
 
 ## Prerequisites
 
@@ -51,7 +62,23 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment
 
-Copy `.env.example` to `.env.local` if the repo provides one, then set Convex URL, Clerk keys, and any action secrets required by your deployment. Never commit real secrets.
+Copy `.env.example` to `.env.local` for Next.js (Convex URL, Clerk keys). **AI secrets live on Convex**, not in the browser:
+
+| Variable | Where | Purpose |
+|----------|--------|---------|
+| `NEXT_PUBLIC_CONVEX_URL` | `.env.local` + Vercel | Convex WebSocket URL for the client |
+| `GROQ_API_KEY` | Convex dashboard / `npx convex env set` | Whisper + chat |
+| `EXA_API_KEY` | Convex | Web search |
+| `APIFY_API_TOKEN` | Convex (optional) | Deep mandi page extract for voice Ask |
+| `CLERK_JWT_ISSUER_DOMAIN` | Convex | Clerk → Convex auth |
+
+```bash
+npx convex env set GROQ_API_KEY ...
+npx convex env set EXA_API_KEY ...
+npx convex env set APIFY_API_TOKEN apify_api_...   # optional
+```
+
+Never commit real secrets. See `.env.example` for placeholders.
 
 ## Theming
 
