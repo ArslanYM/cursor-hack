@@ -61,6 +61,7 @@ export const updatePreferences = mutation({
   args: {
     location: v.optional(v.string()),
     crops: v.optional(v.array(v.string())),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -78,8 +79,34 @@ export const updatePreferences = mutation({
     const updates: Record<string, unknown> = {};
     if (args.location !== undefined) updates.location = args.location;
     if (args.crops !== undefined) updates.crops = args.crops;
+    if (args.language !== undefined) updates.language = args.language;
 
     await ctx.db.patch(user._id, updates);
+    return user._id;
+  },
+});
+
+export const completeOnboarding = mutation({
+  args: {
+    language: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      language: args.language,
+      onboardingComplete: true,
+    });
     return user._id;
   },
 });

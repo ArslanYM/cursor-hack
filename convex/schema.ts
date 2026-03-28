@@ -9,6 +9,8 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     location: v.optional(v.string()),
     crops: v.optional(v.array(v.string())),
+    language: v.optional(v.string()),
+    onboardingComplete: v.optional(v.boolean()),
   }).index("by_token", ["tokenIdentifier"]),
 
   queries: defineTable({

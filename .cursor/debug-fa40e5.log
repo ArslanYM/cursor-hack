@@ -1,0 +1,25 @@
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687684173}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687694332}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":34,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687694336}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":162977,"base64Length":217304,"hypothesisId":"H2"},"timestamp":1774687694350}
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687744033}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687761424}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":59,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687761439}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":280247,"base64Length":373664,"hypothesisId":"H2"},"timestamp":1774687761449}
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687762248}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687779075}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":57,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687779091}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":270555,"base64Length":360740,"hypothesisId":"H2"},"timestamp":1774687779103}
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687784418}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687799424}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":51,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687799452}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":241479,"base64Length":321972,"hypothesisId":"H2"},"timestamp":1774687799484}
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687838900}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687851737}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":43,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687851742}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":206591,"base64Length":275456,"hypothesisId":"H2"},"timestamp":1774687851779}
+{"sessionId":"fa40e5","location":"page.tsx:startRecording","message":"Recording started","data":{"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687896782}
+{"sessionId":"fa40e5","location":"page.tsx:stopRecording","message":"Auto/manual stop triggered","data":{"recorderState":"recording","hypothesisId":"H2"},"timestamp":1774687926832}
+{"sessionId":"fa40e5","location":"page.tsx:recorder.onstop","message":"Recording stopped, processing audio","data":{"chunksCount":101,"mimeType":"audio/webm;codecs=opus","hypothesisId":"H2"},"timestamp":1774687926836}
+{"sessionId":"fa40e5","location":"page.tsx:onstop:base64","message":"Audio converted to base64","data":{"blobSize":484745,"base64Length":646328,"hypothesisId":"H2"},"timestamp":1774687926857}
+{"sessionId":"fa40e5","location":"page.tsx:queryData-effect","message":"queryData changed","data":{"hasAiResponse":false,"hasTranscript":false,"hypothesisId":"H4"},"timestamp":1774688134835}
