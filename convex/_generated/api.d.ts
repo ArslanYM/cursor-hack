@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as apifyClient from "../apifyClient.js";
 import type * as farmerActions from "../farmerActions.js";
 import type * as farmerQuery from "../farmerQuery.js";
 import type * as groqClient from "../groqClient.js";
@@ -23,6 +24,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  apifyClient: typeof apifyClient;
   farmerActions: typeof farmerActions;
   farmerQuery: typeof farmerQuery;
   groqClient: typeof groqClient;
