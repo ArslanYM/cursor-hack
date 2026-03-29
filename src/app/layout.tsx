@@ -61,7 +61,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-kv-bg text-kv-text transition-colors duration-200">
+      <body className="font-sans min-h-full flex flex-col bg-kv-bg text-kv-text transition-colors duration-200">
         <ThemeProvider>
           <ConvexClientProvider convexUrl={convexUrl}>
             {children}

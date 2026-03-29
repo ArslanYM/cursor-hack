@@ -161,7 +161,8 @@ body {
   min-height: 100%;
   background: var(--kv-bg);
   color: var(--kv-text);
-  font-family: var(--font-noto-sans), system-ui, sans-serif;
+  /* Same stack as Tailwind `font-sans` (Noto Sans + fallbacks) */
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
